@@ -153,9 +153,10 @@ LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c('2020', '2015-2019 Avera
 
 ```{r Graph Creation, include = FALSE}  
 # get Plot Max value for Y axis
-plot_max_df <- cnt_groups(GRSME_df, .summary_var = count, species, trap_year, trapped_date) %>%
+plot_max_df <- cnt_groups(GRSME_df, .summary_var = count, species, trap_year, age_designation, trapped_date) %>%
   filter(trap_year == year(Sys.Date()),
-         species == 'Chinook') 
+         species == 'Chinook',
+         age_designation == 'Adult') 
 plot_max <- max(plot_max_df$n)+2
 
 # Calculate scale factor (for dual Y axes)
