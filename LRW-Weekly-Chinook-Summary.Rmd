@@ -153,11 +153,10 @@ LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c('2020', '2015-2019 Avera
 
 ```{r Graph Creation, include = FALSE}  
 # get Plot Max value for Y axis
-plot_max_df <- cnt_groups(GRSME_df, .summary_var = count, species, trap_year, age_designation, trapped_date) %>%
-  filter(trap_year == year(Sys.Date()),
-         species == 'Chinook',
-         age_designation == 'Adult') 
-plot_max <- max(plot_max_df$n)+2
+plot_max_df <- LRW_catch %>%
+  group_by(trapped_date) %>%
+  summarize(Count = sum(Catch)) 
+plot_max <- max(plot_max_df$Count)+2
 
 # Calculate scale factor (for dual Y axes)
 scaleFactor <- round(max(LRW_megadf$Catch, na.rm=TRUE)/max(LRW_megadf$MeanDailyFlow, na.rm=TRUE), 3)
