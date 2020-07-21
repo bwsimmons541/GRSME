@@ -347,12 +347,11 @@ kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon a
 \begin{minipage}[t]{0.25\textwidth}
 \end{minipage}
 \begin{minipage}[t]{0.5\textwidth}
-Bailey, T (ODFW)\\
+Baily, T (ODFW)\\
 Beals, S (ODFW)\\
 Brady, A (BPA)\\
 Bratcher, K (ODFW)\\
 Bronson, P (CTUIR)\\
-Collins, J (USFWS)\\
 Craft, N (ODFW)\\
 Deal, D (ODFW)\\
 Eddy, B (ODFW)\\
@@ -369,9 +368,9 @@ Harrod, R (ODFW)\\
 Hesse, J (NPT)\\
 Humphreys, J (TFT)\\
 James, G (CTUIR)\\
+Johnson, B (NPT)\\ 
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
-Johnson, B (NPT)\\  
 Johnson, D (NPT)\\
 Kavanagh, M (BPA)\\
 McCloud, J (BPA)\\
@@ -387,6 +386,7 @@ Tucker, E (ODFW)\\
 Vatland, S (NPT)\\
 Vogel, J (NPT)\\
 Watry, C (NPT)\\
+Wiese, N (USFWS)\\ 
 Wolfe, W (Landowner)\\
 Yanke, J (ODFW)\\
 Yearout, J (NPT)\\
