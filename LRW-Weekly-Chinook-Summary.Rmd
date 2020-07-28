@@ -18,15 +18,21 @@ library(lubridate)
 
 source('./R/cdms_api_keys.R')
 source('./R/sumGRSMEdisp.R')
+```
 
+``` {r Estimates and Goals, include = FALSE}
 # Season Return Estimates 
-estimate_date <- "June 16th"  # format: "June 15th"
-nat_adults <- "140"
-hat_adults <- "421"
+estimate_date <- "July 24th"  # format: "June 15th"
+nat_adults <- "250-499"
+hat_adults <- ">600"
 
 # Brood Stock Collection Goals
-nat_brood <- "32"
-hat_brood <- "128"
+natural_brood <- "48"
+hatchery_brood <- "112"
+
+# Sliding Scale Goals
+SS_upstream <- "50%" # % hatchery passed upstream
+SS_brood <- "30%"  # % natural kept for brood
 ```
 
 ```{r CDMS Login, include = FALSE}
@@ -311,9 +317,9 @@ include_graphics(path = './www/npt_joseph.png')
 Disposition Summary
 
 + In season adult return to tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
-+ Brood stock collection goals are `r nat_brood` natural-origin and `r hat_brood` hatchery-origin adults. \newline 
-+ Composition of adults passed upstream: `r h_upstream`% Hatchery (Sliding scale goal $\leq$ 70%) \newline
-+ Composition of adults kept for brood: `r natural_brood`% Natural (Sliding scale goal $\geq$ 20%) \newline
++ Brood stock collection goals are `r natural_brood` natural-origin and `r hatchery_brood` hatchery-origin adults. \newline 
++ Composition of adults passed upstream: `r h_upstream`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
++ Composition of adults kept for brood: `r natural_brood`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
 ```{r Disposition Tables, echo=FALSE, fig.align='center'}
 # Table 1
