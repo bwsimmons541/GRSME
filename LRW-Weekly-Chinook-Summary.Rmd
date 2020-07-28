@@ -27,8 +27,8 @@ nat_adults <- "250-499"
 hat_adults <- ">600"
 
 # Brood Stock Collection Goals
-natural_brood <- "48"
-hatchery_brood <- "112"
+N_brood_goal <- "48"
+H_brood_goal <- "112"
 
 # Sliding Scale Goals
 SS_upstream <- "50%" # % hatchery passed upstream
@@ -317,7 +317,7 @@ include_graphics(path = './www/npt_joseph.png')
 Disposition Summary
 
 + In season adult return to tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
-+ Brood stock collection goals are `r natural_brood` natural-origin and `r hatchery_brood` hatchery-origin adults. \newline 
++ Brood stock collection goals are `r N_brood_goal` natural-origin and `r H_brood_goal` hatchery-origin adults. \newline 
 + Composition of adults passed upstream: `r h_upstream`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r natural_brood`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
