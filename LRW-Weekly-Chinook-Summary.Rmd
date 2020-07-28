@@ -70,11 +70,11 @@ n_df <- sumGRSMEdisp(GRSME_df, 'Natural')
 # Composition Percentages
 hat_up <- as.numeric(str_extract(h_df[[1,5]], '^[:digit:]*')) # upstream
 nat_up <- as.numeric(str_extract(n_df[[1,5]], '^[:digit:]*')) # upstream
-  h_upstream <- round((hat_up/(hat_up+nat_up))*100, 0)
+  H_upstream_calc <- round((hat_up/(hat_up+nat_up))*100, 0)
 
 hat_BS <- as.numeric(str_extract(h_df[[2,5]], '^[:digit:]*')) # broodstock
 nat_BS <- as.numeric(str_extract(n_df[[2,5]], '^[:digit:]*')) # broodstock
-  natural_brood <- round((nat_BS/(hat_BS+nat_BS))*100, 0)
+  N_brood_calc <- round((nat_BS/(hat_BS+nat_BS))*100, 0)
 
 ```
 
@@ -318,8 +318,8 @@ Disposition Summary
 
 + In season adult return to tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
 + Brood stock collection goals are `r N_brood_goal` natural-origin and `r H_brood_goal` hatchery-origin adults. \newline 
-+ Composition of adults passed upstream: `r h_upstream`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
-+ Composition of adults kept for brood: `r natural_brood`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
++ Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
++ Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
 ```{r Disposition Tables, echo=FALSE, fig.align='center'}
 # Table 1
