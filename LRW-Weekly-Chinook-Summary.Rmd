@@ -386,9 +386,9 @@ Oatman, J (NPT)\\
 Robertson, M (FWS)\\
 Rumelhart, R (NPT)\\
 Ruzycki, J (ODFW)\\
+Smith, J (ODFW)\\
 Traxler, P (ODFW)\\
 Tuck, J (ODFW)\\
-Tucker, E (ODFW)\\
 Vatland, S (NPT)\\
 Vogel, J (NPT)\\
 Watry, C (NPT)\\
@@ -397,7 +397,6 @@ Wolfe, W (Landowner)\\
 Yanke, J (ODFW)\\
 Yearout, J (NPT)\\
 Young, B (NPT)\\
-Zimmermann, B (CTUIR)\\
 Zollman, R (NPT)\\
 \end{minipage}
 
