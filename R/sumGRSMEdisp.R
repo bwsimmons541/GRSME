@@ -25,7 +25,8 @@ sumGRSMEdisp <- function(data, origin_) {
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
         living_status %in% c('DOA', 'TrapMort') ~ 'Mortality', 
-        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River Outplant',
+        purpose == 'Recycled' ~ 'Recycled to Fishery',
+        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River OutplaSSnt',
         disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
         disposition == 'Disposed' ~ 'Food Distribution'
@@ -33,7 +34,8 @@ sumGRSMEdisp <- function(data, origin_) {
     group_by(Disposition, Class, origin) %>%
     summarize(Count = sum(count)) 
   
-  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Mortality')
+  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 
+                        'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality')
   
     # Dispositions Summary 
   disp_df <- disp_summary %>%
@@ -72,8 +74,7 @@ sumGRSMEdisp <- function(data, origin_) {
     }
   }
   
-  disp_df <- disp_df[order(match(disp_df$Disposition, c('Upstream Release', 'Brood Collection', 'Food Distribution', 
-                                               'Wallowa River Outplant', 'Mortality', 'Total'))),]
+  disp_df <- disp_df[order(match(disp_df$Disposition, disposition_list)),]
   
   # EXCLUDING RECAPS ----
     # Assign Dispositions based on moved_to
@@ -87,6 +88,7 @@ sumGRSMEdisp <- function(data, origin_) {
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
         living_status %in% c('DOA', 'TrapMort') ~ 'Mortality', 
+        purpose == 'Recycled' ~ 'Recycled to Fishery',
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River Outplant',
         disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
@@ -95,7 +97,7 @@ sumGRSMEdisp <- function(data, origin_) {
     group_by(Disposition, Class, origin) %>%
     summarize(Count = sum(count)) 
   
-  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Mortality')
+  # disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Mortality')
   
     # Dispositions Summary
   NoRecap_df <- disp_summary2 %>%
@@ -134,8 +136,7 @@ sumGRSMEdisp <- function(data, origin_) {
     }
   }
   
-  NoRecap_df <- NoRecap_df[order(match(NoRecap_df$Disposition, c('Upstream Release', 'Brood Collection', 'Food Distribution', 
-                                                        'Wallowa River Outplant', 'Mortality', 'Total'))),]
+  NoRecap_df <- NoRecap_df[order(match(NoRecap_df$Disposition, disposition_list)),]
   
   
   join_df <- left_join(disp_df, NoRecap_df, by = 'Disposition') %>%

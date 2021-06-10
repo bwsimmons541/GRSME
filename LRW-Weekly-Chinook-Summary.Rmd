@@ -36,13 +36,13 @@ SS_brood <- "30%"  # % natural kept for brood
 ```
 
 ```{r CDMS Login, include = FALSE}
-keys <- cdmsKeys()
-cdms_host <- keys[1]
-# cdms_host <- 'http://localhost:80/'  # DEV
-username <- keys[2]
-api_key <- keys[3]
-
-cdmsLogin(username, api_key, cdms_host)
+# keys <- cdmsKeys()
+# cdms_host <- keys[1]
+# # cdms_host <- 'http://localhost:80/'  # DEV
+# username <- keys[2]
+# api_key <- keys[3]
+# 
+# cdmsLogin(username, api_key, cdms_host)
 ```
 
 ```{r Get Data, include = FALSE}
@@ -64,8 +64,32 @@ cdmsLogin(username, api_key, cdms_host)
 # Hatchery Dispositions
 h_df <- sumGRSMEdisp(GRSME_df, 'Hatchery')
 
+
 # Natural Dispositions
 n_df <- sumGRSMEdisp(GRSME_df, 'Natural')
+
+# FINAL DISPOSITION 2020 EDITS TO FINS
+# H BROOD
+h_df[2, "F"] <- "54 (54)" # -3
+h_df[2, "M"] <- "44 (44)" # -12
+h_df[2, "Total (>630)"] <- "98 (98)"  # -15
+h_df[2, "Total (all)"] <- "102 (102)" # -15
+# H OUTPLANT
+h_df[4, "F"] <- "22 (17)" # +3
+h_df[4, "M"] <- "33 (27)" # +12
+h_df[4, "Total (>630)"] <- "55 (44)"  # +15
+h_df[4, "Total (all)"] <- "146 (108)" # +15
+
+# N BROOD
+n_df[2, "F"] <- "22 (22)" # -2
+n_df[2, "M"] <- "14 (14)" # -9
+n_df[2, "Total (>630)"] <- "36 (36)" # -11
+n_df[2, "Total (all)"] <- "36 (36)"  # -11
+# N UPSTREAM
+n_df[1, "F"] <- "104 (104)" # +2
+n_df[1, "M"] <- "130 (127)" # +9
+n_df[1, "Total (>630)"] <- "234 (231)" # +11
+n_df[1, "Total (all)"] <- "254 (251)" # +11
 
 # Composition Percentages
 hat_up <- as.numeric(str_extract(h_df[[1,5]], '^[:digit:]*')) # upstream
@@ -321,17 +345,25 @@ Disposition Summary
 + Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
-```{r Disposition Tables, echo=FALSE, fig.align='center'}
+```{r Hatchery Disposition Table, echo=FALSE, fig.align='center'}
 # Table 1
-kable(h_df, caption = 'Year-to-date capture and disposition summary of Hatchery Chinook salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
+kable(h_df, caption = 'Year-to-date capture and final disposition summary of Hatchery
+Chinook salmon (Numbers in parentheses exclude recaptures). Values reflect the Sep 8, 2020 transfer of 3 hatchery females and 12 hatchery males previously collected for brood and held at Lookingglass Fish Hatchery from the hatchery to the  Wallowa River to spawn naturally as outplants. 
+', align = c('l', rep('r', 5)))
+```
 
+\newpage
+
+```{r Natural Disposition Table, echo=FALSE, fig.align='center'}
 # Table 2
-kable(n_df, caption = 'Year-to-date capture and disposition summary of Natural Chinook salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
+kable(n_df, caption = 'Year-to-date capture and final disposition summary of Natural
+Chinook salmon (Numbers in parentheses exclude recaptures). Values reflect the Sep 8, 2020 transfer of 2 natural females and 9 natural males previously collected for brood and held at Lookingglass Fish Hatchery from the hatchery to the  Lostine River upstream of the weir to spawn naturally.
+', align = c('l', rep('r', 5)))
 
 ```
 
 ```{r Table 3, echo=FALSE, fig.align='center'}
-kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection (including recaptures) is also shown for Chinook salmon in parenthesis. *Asterisk indicates an incomplete week.', align = c('l', rep('r', 5)))
+kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection (including recaptures) is also shown for Chinook salmon in parenthesis. *Asterisk indicates an incomplete week. Numbers do not include the late-season transfer of broodstock to the Lostine and Wallowa Rivers.', align = c('l', rep('r', 5)))
 ```
 
 
