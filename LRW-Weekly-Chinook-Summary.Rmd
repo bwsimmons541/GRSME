@@ -130,7 +130,7 @@ LRW_catch <- GRSME_df %>%
          trap_year == year(Sys.Date()),
          age_designation == 'Adult') %>%
   group_by(trapped_date, MonthDay, origin) %>%
-  summarize(Catch = sum(count)) %>%
+  summarize(Catch = sum(count, na.rm = TRUE)) %>%
   mutate(facet = paste(year(Sys.Date())))
 
 # Historic Catch ----
@@ -152,8 +152,8 @@ LRW_all <- bind_rows(LRW_catch, LRW_historic)
 # MEGA DF!
 LRW_megadf <- full_join(LRW_all, flow_all, by = c('trapped_date', 'facet'))
 
-LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c('2020', '2015-2019 Average'))  # this isn't dynamic. Will need to update each year.
-  # this above allows me to order the facet_grid properly with 2020 on top.
+LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c(year(Sys.Date()), paste0(year(Sys.Date())-5, '-', year(Sys.Date())-1, ' Average')))
+     # this above allows me to order the facet_grid properly with 2020 on top.
 ```  
 
 
