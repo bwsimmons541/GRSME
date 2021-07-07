@@ -137,7 +137,7 @@ LRW_catch <- GRSME_df %>%
 LRW_historic <- GRSME_df %>%
   filter(species == 'Chinook',
          recap == FALSE,
-         !trap_year %in% c(1997:2014, year(Sys.Date())),
+         !trap_year %in% c(1997:(year(Sys.Date())-6), year(Sys.Date())),
          age_designation == 'Adult') %>%
   group_by(MonthDay, origin) %>%  # get the total catch for Month/Day
   summarize(AllCatch = sum(count)) %>%
@@ -407,11 +407,11 @@ Zollman, R (NPT)\\
 \end{center}
 
 \begin{center}
-{\large Aaron Maxwell \\}
+{\large Brian Simmons \\}
 Grande Ronde Supplemenetation Monitoring and Evalutation\\
 Fisheries Biologist II\\
-541-432-2504\\
-amaxwell@nezperce.org \par 
+541-432-2515\\
+brians@nezperce.org \par 
 
 or\par 
 
