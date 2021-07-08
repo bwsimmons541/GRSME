@@ -22,17 +22,17 @@ source('./R/sumGRSMEdisp.R')
 
 ``` {r Estimates and Goals, include = FALSE}
 # Season Return Estimates 
-estimate_date <- "July 24th"  # format: "June 15th"
-nat_adults <- "250-499"
-hat_adults <- ">600"
+estimate_date <- "June 16th"  # format: "June 15th"
+nat_adults <- "200"
+hat_adults <- "632"
 
 # Brood Stock Collection Goals
-N_brood_goal <- "48"
-H_brood_goal <- "112"
+N_brood_goal <- "40"
+H_brood_goal <- "126"
 
 # Sliding Scale Goals
-SS_upstream <- "50%" # % hatchery passed upstream
-SS_brood <- "30%"  # % natural kept for brood
+SS_upstream <- "60%" # % hatchery passed upstream
+SS_brood <- "25%"  # % natural kept for brood
 ```
 
 ```{r CDMS Login, include = FALSE}
@@ -121,11 +121,17 @@ flow_df_H <- read.delim(req_url2, sep = '\t') %>%
 flow_all <- bind_rows(flow_df, flow_df_H) %>%
   mutate(trapped_date = paste(year(Sys.Date()), '/', as.character(MonthDay), sep = ''),
          trapped_date = ymd(trapped_date)) %>% # trapped date cheat.
-  filter(between(trapped_date, ymd('2020-05-30'), ymd('2020-09-21')))
-  # filter(between(trapped_date, ymd(paste0(year(Sys.Date())-1, '-05-30'), paste0(year(Sys.Date())-1, '-09-21'))))
+  filter(between(trapped_date, ymd(paste0(year(Sys.Date()), '-05-30')), ymd(paste0(year(Sys.Date()), '-09-21'))))
 
 # Current year's catch ----
 LRW_catch <- GRSME_df %>%
+  mutate(age_designation = case_when(
+    !is.na(age_designation) ~ age_designation,
+    between(length, 300, 400) ~'MiniJack',
+    between(length, 401, 630) ~ 'Jack/Jill',
+    between(length, 631, 1500) ~ 'Adult',
+    TRUE ~ 'MISSING'
+  )) %>%
   filter(species == 'Chinook',
          recap == FALSE,
          trap_year == year(Sys.Date()),
@@ -141,7 +147,7 @@ LRW_historic <- GRSME_df %>%
          !trap_year %in% c(1997:(year(Sys.Date())-6), year(Sys.Date())),
          age_designation == 'Adult') %>%
   group_by(MonthDay, origin) %>%  # get the total catch for Month/Day
-  summarize(AllCatch = sum(count)) %>%
+  summarize(AllCatch = sum(count, na.rm = TRUE)) %>%
   mutate(Catch = AllCatch/5) %>% # calculate Mean Daily Catch: AllCatch from years, divided by number of years (5)
   mutate(trapped_date = ymd(paste(year(Sys.Date()), '-', MonthDay)),
          facet = paste(year(Sys.Date())-5, '-', year(Sys.Date())-1, " Average", sep=''))
@@ -151,7 +157,7 @@ LRW_all <- bind_rows(LRW_catch, LRW_historic)
 
 
 # MEGA DF!
-LRW_megadf <- full_join(LRW_all, flow_all, by = c('trapped_date', 'facet'))
+LRW_megadf <- full_join(LRW_all, flow_all, by = c('trapped_date', 'facet', 'MonthDay'))
 
 LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c(year(Sys.Date()), paste0(year(Sys.Date())-5, '-', year(Sys.Date())-1, ' Average')))
      # this above allows me to order the facet_grid properly with 2020 on top.
