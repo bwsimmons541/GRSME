@@ -28,7 +28,7 @@ hat_adults <- "632"
 
 # Brood Stock Collection Goals
 N_brood_goal <- "40"
-H_brood_goal <- "126"
+H_brood_goal <- "120"
 
 # Sliding Scale Goals
 SS_upstream <- "60%" # % hatchery passed upstream
@@ -56,7 +56,7 @@ cdmsLogin(username, api_key, cdms_host)
            MonthDay = format(as.Date(trapped_date), '%m/%d')) 
 
   GRSME_df <- AdultWeirData_clean  %>%
-    filter(facility == 'NPT GRSME Program') 
+    filter(facility == 'NPT GRSME Program')
   
 ```
 
