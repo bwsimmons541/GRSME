@@ -27,8 +27,9 @@ nat_adults <- "200"
 hat_adults <- "632"
 
 # Brood Stock Collection Goals
-N_brood_goal <- "40"
-H_brood_goal <- "120"
+N_brood_goal <- "40" # natural-origin adults
+H_brood_goal <- "120" # hatchery-origin adults
+HJ_brood_goal <- "6" # hatchery-origin jacks
 
 # Sliding Scale Goals
 SS_upstream <- "60%" # % hatchery passed upstream
@@ -125,13 +126,6 @@ flow_all <- bind_rows(flow_df, flow_df_H) %>%
 
 # Current year's catch ----
 LRW_catch <- GRSME_df %>%
-  mutate(age_designation = case_when(
-    !is.na(age_designation) ~ age_designation,
-    between(length, 300, 400) ~'MiniJack',
-    between(length, 401, 630) ~ 'Jack/Jill',
-    between(length, 631, 1500) ~ 'Adult',
-    TRUE ~ 'MISSING'
-  )) %>%
   filter(species == 'Chinook',
          recap == FALSE,
          trap_year == year(Sys.Date()),
@@ -323,17 +317,17 @@ include_graphics(path = './www/npt_joseph.png')
 
 Disposition Summary
 
-+ In season adult return to tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
-+ Brood stock collection goals are `r N_brood_goal` natural-origin and `r H_brood_goal` hatchery-origin adults. \newline 
++ In-season adult return-to-tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
++ Brood stock collection goals are `r N_brood_goal` natural-origin adults, `r H_brood_goal` hatchery-origin adults, and `r HJ_brood_goal` hatchery-origin jacks. \newline 
 + Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
 ```{r Disposition Tables, echo=FALSE, fig.align='center'}
 # Table 1
-kable(h_df, caption = 'Year-to-date capture and disposition summary of Hatchery Chinook salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
+kable(h_df, caption = 'Year-to-date capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
 
 # Table 2
-kable(n_df, caption = 'Year-to-date capture and disposition summary of Natural Chinook salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
+kable(n_df, caption = 'Year-to-date capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
 
 ```
 
@@ -360,15 +354,14 @@ kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon a
 \begin{minipage}[t]{0.25\textwidth}
 \end{minipage}
 \begin{minipage}[t]{0.5\textwidth}
-Baily, T (ODFW)\\
 Beals, S (ODFW)\\
 Brady, A (BPA)\\
+Brandt, E (ODFW)\\
 Bratcher, K (ODFW)\\
+Brigante, E (ODFW)\\
 Bronson, P (CTUIR)\\
 Craft, N (ODFW)\\
 Deal, D (ODFW)\\
-Eddy, B (ODFW)\\
-Eddy, D (ODFW)\\
 Engle, R (FWS)\\
 Farnam, B (NOAA)\\ 
 Feldhaus, J (ODFW)\\
@@ -379,15 +372,15 @@ Gibbs, A (ODFW)\\
 Harbeck, J (NPT)\\
 Harrod, R (ODFW)\\ 
 Hesse, J (NPT)\\
-Humphreys, J (TFT)\\
+Humphreys, J (TU)\\
 James, G (CTUIR)\\
 Johnson, B (NPT)\\ 
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
 Johnson, D (NPT)\\
-Kavanagh, M (BPA)\\
-McCloud, J (BPA)\\
+Lemanski, J (ODFW)\\
 McLean, M (CTUIR)\\
+McOmie, E )BPA\\
 Montgomery, S (ODFW)\\
 Oatman, J (NPT)\\
 Robertson, M (FWS)\\
