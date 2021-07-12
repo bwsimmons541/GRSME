@@ -25,7 +25,8 @@ sumGRSMEdisp <- function(data, origin_) {
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
         living_status %in% c('DOA', 'TrapMort') ~ 'Mortality', 
-        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River Outplant',
+        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Recycled' ~ 'Recycled to Fishery',
+        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Outplant' ~ 'Wallowa River Outplant',
         disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
         disposition == 'Disposed' ~ 'Food Distribution'
@@ -33,7 +34,7 @@ sumGRSMEdisp <- function(data, origin_) {
     group_by(Disposition, Class, origin) %>%
     summarize(Count = sum(count)) 
   
-  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Mortality')
+  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality')
   
     # Dispositions Summary 
   disp_df <- disp_summary %>%
@@ -51,29 +52,29 @@ sumGRSMEdisp <- function(data, origin_) {
   }
   
   disp_df <- disp_df %>%
-    mutate(`Total (>630)` = `F`+`M`,
-           `Total (all)` = `J`+`F`+`M`) %>%
-    select(`Disposition`, `J`, `F`, `M`, `Total (>630)`, `Total (all)`, `origin`) %>%
+    mutate(`Total [>630]` = `F`+`M`,
+           `Total [all]` = `J`+`F`+`M`) %>%
+    select(`Disposition`, `J`, `F`, `M`, `Total [>630]`, `Total [all]`, `origin`) %>%
     ungroup() %>%
     select(-origin)
   
   disp_tot <- apply(disp_df[,c(2:6)], 2, sum) 
   
   disp_df <- disp_df %>%
-    add_row(Disposition = 'Total', `J`= disp_tot[1], `F`= disp_tot[2], `M`= disp_tot[3], `Total (>630)`= disp_tot[4], `Total (all)`= disp_tot[5])
+    add_row(Disposition = 'Total', `J`= disp_tot[1], `F`= disp_tot[2], `M`= disp_tot[3], `Total [>630]`= disp_tot[4], `Total [all]`= disp_tot[5])
   
     # If there is no data for a disposition, add a row showing zeros.
   for (i in 1:length(disposition_list)) {
     if(!disposition_list[i] %in% unique(disp_df$Disposition)) {
       disp_df <- disp_df %>%
-        add_row(Disposition = disposition_list[i], `J`= 0, `F`= 0, `M`= 0, `Total (>630)`= 0, `Total (all)`= 0)
+        add_row(Disposition = disposition_list[i], `J`= 0, `F`= 0, `M`= 0, `Total [>630]`= 0, `Total [all]`= 0)
     } else {
       next
     }
   }
   
   disp_df <- disp_df[order(match(disp_df$Disposition, c('Upstream Release', 'Brood Collection', 'Food Distribution', 
-                                               'Wallowa River Outplant', 'Mortality', 'Total'))),]
+                                               'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality', 'Total'))),]
   
   # EXCLUDING RECAPS ----
     # Assign Dispositions based on moved_to
@@ -86,7 +87,8 @@ sumGRSMEdisp <- function(data, origin_) {
       sex == 'Male' ~ 'M',
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
-        living_status %in% c('DOA', 'TrapMort') ~ 'Mortality', 
+        living_status %in% c('DOA', 'TrapMort') ~ 'Mortality',
+        disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Recycled' ~ 'Recycled to Fishery',
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River Outplant',
         disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
@@ -95,7 +97,7 @@ sumGRSMEdisp <- function(data, origin_) {
     group_by(Disposition, Class, origin) %>%
     summarize(Count = sum(count)) 
   
-  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Mortality')
+  disposition_list <- c('Upstream Release', 'Brood Collection', 'Food Distribution', 'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality')
   
     # Dispositions Summary
   NoRecap_df <- disp_summary2 %>%
@@ -113,38 +115,38 @@ sumGRSMEdisp <- function(data, origin_) {
   }
   
   NoRecap_df <- NoRecap_df %>%
-    mutate(`Total (>630)` = `F`+`M`,
-           `Total (all)` = `J`+`F`+`M`) %>%
-    select(`Disposition`, `J`, `F`, `M`, `Total (>630)`, `Total (all)`, `origin`) %>%
+    mutate(`Total [>630]` = `F`+`M`,
+           `Total [all]` = `J`+`F`+`M`) %>%
+    select(`Disposition`, `J`, `F`, `M`, `Total [>630]`, `Total [all]`, `origin`) %>%
     ungroup() %>%
     select(-origin)
   
   NoRecap_tot <- apply(NoRecap_df[,c(2:6)], 2, sum) 
   
   NoRecap_df <- NoRecap_df %>%
-    add_row(Disposition = 'Total', `J`= NoRecap_tot[1], `F`= NoRecap_tot[2], `M`= NoRecap_tot[3], `Total (>630)`= NoRecap_tot[4], `Total (all)`= NoRecap_tot[5])
+    add_row(Disposition = 'Total', `J`= NoRecap_tot[1], `F`= NoRecap_tot[2], `M`= NoRecap_tot[3], `Total [>630]`= NoRecap_tot[4], `Total [all]`= NoRecap_tot[5])
   
   # If there is no data for a disposition, add a row showing zeros.
   for (i in 1:length(disposition_list)) {
     if(!disposition_list[i] %in% unique(NoRecap_df$Disposition)) {
       NoRecap_df <- NoRecap_df %>%
-        add_row(Disposition = disposition_list[i], `J`= 0, `F`= 0, `M`= 0, `Total (>630)`= 0, `Total (all)`= 0)
+        add_row(Disposition = disposition_list[i], `J`= 0, `F`= 0, `M`= 0, `Total [>630]`= 0, `Total [all]`= 0)
     } else {
       next
     }
   }
   
   NoRecap_df <- NoRecap_df[order(match(NoRecap_df$Disposition, c('Upstream Release', 'Brood Collection', 'Food Distribution', 
-                                                        'Wallowa River Outplant', 'Mortality', 'Total'))),]
+                                                        'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality', 'Total'))),]
   
   
   join_df <- left_join(disp_df, NoRecap_df, by = 'Disposition') %>%
     mutate(`J` = paste(`J.x`, ' (', `J.y`, ')', sep=''),
            `F` = paste(`F.x`, ' (', `F.y`, ')', sep=''),
            `M` = paste(`M.x`, ' (', `M.y`, ')', sep=''),
-           `Total (>630)` = paste(`Total (>630).x`, ' (', `Total (>630).y`, ')', sep=''),
-           `Total (all)` = paste(`Total (all).x`, ' (', `Total (all).y`, ')', sep='')) %>%
-    select(Disposition, J, `F`, M, `Total (>630)`, `Total (all)`)
+           `Total [>630]` = paste(`Total [>630].x`, ' (', `Total [>630].y`, ')', sep=''),
+           `Total [all]` = paste(`Total [all].x`, ' (', `Total [all].y`, ')', sep='')) %>%
+    select(Disposition, J, `F`, M, `Total [>630]`, `Total [all]`)
   
   
   return(join_df)
