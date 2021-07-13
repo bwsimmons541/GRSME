@@ -352,13 +352,13 @@ knit_print(flex_n)
 ```
 
 ```{r Table 3, echo=FALSE, fig.align='center', warning=FALSE}
-# kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection (including recaptures) is also shown for Chinook salmon in parenthesis. *Asterisk indicates an incomplete week.', align = c('l', rep('r', 5)))
+# kable(table3_final, caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.', align = c('l', rep('r', 5)))
 
 flex_bt <-  flextable(table3_final,
           cwidth = c(1,1.5,1.5,1.2)) %>%
   align(j=2:4, align = 'right', part = 'all') %>%
   hline(i=nrow(table3_final)-1) %>%
-  set_caption(caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection (including recaptures) is also shown for Chinook salmon in parenthesis. *Asterisk indicates an incomplete week.')
+  set_caption(caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.')
 
 knit_print(flex_bt)
 ```
@@ -402,14 +402,16 @@ Harrod, R (ODFW)\\
 Hesse, J (NPT)\\
 Humphreys, J (TU)\\
 James, G (CTUIR)\\
-Johnson, B (NPT)\\ 
+Johnson, B (NPT)\\
+Johnson, D (NPT)\\
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
-Johnson, D (NPT)\\
 Lemanski, J (ODFW)\\
+Maxwell, A (ODFW)\\
 McLean, M (CTUIR)\\
 McOmie, E )BPA\\
 Montgomery, S (ODFW)\\
+Nisbitt, K (Wallowa CTY)\\
 Oatman, J (NPT)\\
 Robertson, M (FWS)\\
 Rumelhart, R (NPT)\\
