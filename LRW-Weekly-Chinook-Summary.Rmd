@@ -19,6 +19,11 @@ library(lubridate)
 
 source('./R/cdms_api_keys.R')
 source('./R/sumGRSMEdisp.R')
+
+# Data Download logic
+download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
+kus_data <- TRUE # TRUE = using data downloaded from Kus; FALSE = process from AdultWeirData_clean
+kus_filename <- "FINS_trapping_NPT_GRSME_Program_2021-07-20.csv"
 ```
 
 ``` {r Estimates and Goals, include = FALSE}
@@ -49,20 +54,29 @@ cdmsLogin(username, api_key, cdms_host)
 
 ```{r Get Data, include = FALSE}
 # Adult Weir (FINS) data ----
+if(download_FINS_CDMS == TRUE) {
+  # Download fins data.
+  AdultWeirData <- getDatasetView(99)
+  # Save to the data folder as an R data file
+  save(AdultWeirData, file = './data/AdultWeirData.rda')  
+} else {
   load(file = './data/AdultWeirData.rda')
-  # AdultWeirData <- getDatasetView(99)
+}
 
-  # Clean 
+  # Clean weir data
   AdultWeirData_clean <- clean_weirData(AdultWeirData) %>%
     mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
 
+if(kus_data == FALSE) {
 # if using data queried from CDMS (getdDatasetView()), use this GRSME_df
-# GRSME_df <- AdultWeirData_clean  %>%
-  # filter(facility == 'NPT GRSME Program')
+  GRSME_df <- AdultWeirData_clean  %>%
+    filter(facility == 'NPT GRSME Program')
+} else {
+  # if you're using Kus data, use this GRSME_df
+  GRSME_df <- read_csv(file = paste0("C:\\Users\\brians\\Documents\\R\\GRSME\\data\\", kus_filename)) %>%
+    mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
+}
 
-# if you're using Kus data, use this GRSME_df
-GRSME_df <- read_csv(file = "C:\\Users\\brians\\Documents\\R\\GRSME\\data\\FINS_trapping_NPT_GRSME_Program_2021-07-20.csv") %>%
-  mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
   
 ```
 
