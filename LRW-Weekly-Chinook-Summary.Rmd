@@ -54,11 +54,15 @@ cdmsLogin(username, api_key, cdms_host)
 
   # Clean 
   AdultWeirData_clean <- clean_weirData(AdultWeirData) %>%
-    mutate(JulianDate = yday(trapped_date),
-           MonthDay = format(as.Date(trapped_date), '%m/%d')) 
+    mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
 
-  GRSME_df <- AdultWeirData_clean  %>%
-    filter(facility == 'NPT GRSME Program')
+# if using data queried from CDMS (getdDatasetView()), use this GRSME_df
+# GRSME_df <- AdultWeirData_clean  %>%
+  # filter(facility == 'NPT GRSME Program')
+
+# if you're using Kus data, use this GRSME_df
+GRSME_df <- read_csv(file = "C:\\Users\\brians\\Documents\\R\\GRSME\\data\\FINS_trapping_NPT_GRSME_Program_2021-07-20.csv") %>%
+  mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
   
 ```
 
@@ -95,7 +99,6 @@ req_url <- paste("https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hydr
 
 flow_df <- read.delim(req_url, sep = '\t') %>%
   mutate(record_date = mdy(record_date),
-         # JulianDate = yday(record_date),
          legend = paste(Sys.Date()-1, 'Discharge'),
          MonthDay = format(as.Date(record_date), '%m/%d'),
          facet = paste(year(Sys.Date()))) %>%
@@ -113,7 +116,6 @@ req_url2 <- paste("https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hyd
 
 flow_df_H <- read.delim(req_url2, sep = '\t') %>%
   mutate(record_date = mdy(record_date),
-         # JulianDate = yday(record_date),
          legend = paste(Sys.Date()-1, 'Discharge'),
          MonthDay = format(as.Date(record_date), '%m/%d')) %>%
   group_by(MonthDay) %>%
