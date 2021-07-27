@@ -23,7 +23,8 @@ source('./R/sumGRSMEdisp.R')
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
 kus_data <- TRUE # TRUE = using data downloaded from Kus; FALSE = process from AdultWeirData_clean
-kus_filename <- "FINS_trapping_NPT_GRSME_Program_2021-07-20.csv"
+kus_filename <- "FINS_trapping_NPT_GRSME_Program_2021-07-27.csv"
+# list.files(path = 'C:/Users/brians/Documents/R/GRSME/data/')
 ```
 
 ``` {r Estimates and Goals, include = FALSE}
@@ -74,10 +75,9 @@ if(kus_data == FALSE) {
 } else {
   # if you're using Kus data, use this GRSME_df
   GRSME_df <- read_csv(file = paste0("C:\\Users\\brians\\Documents\\R\\GRSME\\data\\", kus_filename)) %>%
-    mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
+    mutate(trapped_date = mdy(trapped_date), # make sure trapped_date is a date datatype
+           MonthDay = format(as.Date(trapped_date), '%m/%d')) # so this can work properly.
 }
-
-  
 ```
 
 ```{r Data Processing: Dispositions, include=FALSE}
