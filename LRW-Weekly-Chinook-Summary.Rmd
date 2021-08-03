@@ -23,7 +23,7 @@ source('./R/sumGRSMEdisp.R')
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
 kus_data <- TRUE # TRUE = using data downloaded from Kus; FALSE = process from AdultWeirData_clean
-kus_filename <- "FINS_trapping_NPT_GRSME_Program_2021-07-27.csv"
+kus_filename <- "FINS_trapping_NPT_GRSME_Program_2021-08-03.csv"
 # list.files(path = 'C:/Users/brians/Documents/R/GRSME/data/')
 ```
 
@@ -419,22 +419,20 @@ Hesse, J (NPT)\\
 Humphreys, J (TU)\\
 James, G (CTUIR)\\
 Johnson, B (NPT)\\
-Johnson, D (NPT)\\
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
+Johnson, D (NPT)\\
+Kozlowski, C (ODFW)\\
 Lemanski, J (ODFW)\\
 Maxwell, A (ODFW)\\
 McLean, M (CTUIR)\\
-McOmie, E )BPA\\
-Montgomery, S (ODFW)\\
+McOmie, E (BPA)\\
 Nisbitt, K (Wallowa CTY)\\
 Oatman, J (NPT)\\
 Robertson, M (FWS)\\
 Rumelhart, R (NPT)\\
 Ruzycki, J (ODFW)\\
 Smith, J (ODFW)\\
-Traxler, P (ODFW)\\
-Tuck, J (ODFW)\\
 Vatland, S (NPT)\\
 Vogel, J (NPT)\\
 Watry, C (NPT)\\
