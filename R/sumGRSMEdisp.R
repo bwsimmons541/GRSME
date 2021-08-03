@@ -27,7 +27,7 @@ sumGRSMEdisp <- function(data, origin_) {
         living_status %in% c('DOA', 'TrapMort') ~ 'Mortality', 
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Recycled' ~ 'Recycled to Fishery',
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Outplant' ~ 'Wallowa River Outplant',
-        disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
+        disposition == 'Released' & moved_to %in% c('Lostine River: Above Weir', 'Lostine River: Acclimation Facility') ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
         disposition == 'Disposed' ~ 'Food Distribution'
       )) %>%
@@ -90,7 +90,7 @@ sumGRSMEdisp <- function(data, origin_) {
         living_status %in% c('DOA', 'TrapMort') ~ 'Mortality',
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') & purpose == 'Recycled' ~ 'Recycled to Fishery',
         disposition == 'Released' & str_detect(moved_to, 'Wallowa River') ~ 'Wallowa River Outplant',
-        disposition == 'Released' & moved_to == 'Lostine River: Above Weir' ~ 'Upstream Release',
+        disposition == 'Released' & moved_to %in% c('Lostine River: Above Weir', 'Lostine River: Acclimation Facility') ~ 'Upstream Release',
         disposition %in% c('Ponded', 'Transferred') ~ 'Brood Collection',
         disposition == 'Disposed' ~ 'Food Distribution'
       )) %>%
