@@ -166,7 +166,7 @@ LRW_historic <- AdultWeirData_clean %>%
          species == 'Chinook',
          recap == FALSE,
          !trap_year %in% c(1997:(year(Sys.Date())-6), year(Sys.Date())),
-         age_designation == 'Adult') #%>%
+         age_designation == 'Adult') %>%
   group_by(MonthDay, origin) %>%  # get the total catch for Month/Day
   summarize(AllCatch = sum(count, na.rm = TRUE)) %>%
   mutate(Catch = AllCatch/5) %>% # calculate Mean Daily Catch: AllCatch from years, divided by number of years (5)
@@ -332,10 +332,11 @@ Hesse, J (NPT)\\
 Humphreys, J (TU)\\
 James, G (CTUIR)\\
 Johnson, B (NPT)\\
+Johnson, D (NPT)\\
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
-Johnson, D (NPT)\\
 Kozlowski, C (ODFW)\\
+Lovrak, J (CTUIR)\\
 Lemanski, J (ODFW)\\
 Maxwell, A (ODFW)\\
 McLean, M (CTUIR)\\
@@ -354,6 +355,7 @@ Wolfe, W (Landowner)\\
 Yanke, J (ODFW)\\
 Yearout, J (NPT)\\
 Young, B (NPT)\\
+Zimmerman, B (CTUIR)\\
 Zollman, R (NPT)\\
 \end{minipage}
 
