@@ -24,7 +24,7 @@ source('./R/sumGRSMEbrood.R') # Brood Collection Summary
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
 kus_filename <- NULL
-fins_filename <- "TrappingData_Fins_080321.csv"
+fins_filename <- "TrappingData_Fins_081121.csv"
 # list.files(path = 'C:/Users/brians/Documents/R/GRSME/data/')
 ```
 
@@ -161,11 +161,12 @@ LRW_catch <- GRSME_df %>%
   mutate(facet = paste(year(Sys.Date())))
 
 # Historic Catch ----
-LRW_historic <- GRSME_df %>%
-  filter(species == 'Chinook',
+LRW_historic <- AdultWeirData_clean %>%
+  filter(facility == 'NPT GRSME Program', 
+         species == 'Chinook',
          recap == FALSE,
          !trap_year %in% c(1997:(year(Sys.Date())-6), year(Sys.Date())),
-         age_designation == 'Adult') %>%
+         age_designation == 'Adult') #%>%
   group_by(MonthDay, origin) %>%  # get the total catch for Month/Day
   summarize(AllCatch = sum(count, na.rm = TRUE)) %>%
   mutate(Catch = AllCatch/5) %>% # calculate Mean Daily Catch: AllCatch from years, divided by number of years (5)
