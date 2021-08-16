@@ -24,7 +24,7 @@ source('./R/sumGRSMEbrood.R') # Brood Collection Summary
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
 kus_filename <- NULL
-fins_filename <- "TrappingData_Fins_081121.csv"
+fins_filename <- "TrappingData_Fins_081621.csv"
 # list.files(path = 'C:/Users/brians/Documents/R/GRSME/data/')
 ```
 
@@ -326,15 +326,16 @@ Flesher, M (ODFW) \\
 Garza, Gabriel (ODFW)\\  
 Gee, S (ODFW)\\
 Gibbs, A (ODFW)\\
+Hagenah, P (Wallowa CTY)\\
 Harbeck, J (NPT)\\
 Harrod, R (ODFW)\\ 
 Hesse, J (NPT)\\
 Humphreys, J (TU)\\
 James, G (CTUIR)\\
 Johnson, B (NPT)\\
-Johnson, D (NPT)\\
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
+Johnson, D (NPT)\\
 Kozlowski, C (ODFW)\\
 Lovrak, J (CTUIR)\\
 Lemanski, J (ODFW)\\
@@ -355,7 +356,6 @@ Wolfe, W (Landowner)\\
 Yanke, J (ODFW)\\
 Yearout, J (NPT)\\
 Young, B (NPT)\\
-Zimmerman, B (CTUIR)\\
 Zollman, R (NPT)\\
 \end{minipage}
 
