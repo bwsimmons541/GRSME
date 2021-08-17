@@ -20,7 +20,7 @@ sumGRSMEdisp <- function(data, origin_) {
     filter(trap_year == year(Sys.Date()),  
            species == "Chinook") %>%
     mutate(Class = case_when(
-      age_designation == 'Jack/Jill' ~ 'J',
+      age_designation %in% c('Jack/Jill', 'Mini-Jack') ~ 'J',
       sex == 'Male' ~ 'M',
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
@@ -83,7 +83,7 @@ sumGRSMEdisp <- function(data, origin_) {
            species == "Chinook",
            recap == FALSE) %>%
     mutate(Class = case_when(
-      age_designation == 'Jack/Jill' ~ 'J',
+      age_designation %in% c('Jack/Jill', 'Mini-Jack') ~ 'J',
       sex == 'Male' ~ 'M',
       sex == 'Female' ~ 'F'),
       Disposition = case_when(
