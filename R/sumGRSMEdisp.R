@@ -1,6 +1,7 @@
 #' @title sumGRSMEdisp
 #'
-#' @description takes prepared FINS Data and generates summaries for weir report.
+#' @description takes prepared FINS Data and generates dispostion summaries for weir report with recaps
+#' both included and excluded.
 #'
 #' @param data FINS data filtered for year, trap, and species of interest
 #' @author Tyler Stright
