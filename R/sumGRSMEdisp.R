@@ -80,7 +80,7 @@ sumGRSMEdisp <- function(data, origin_) {
     # order dispositions as desired
     disp_df <- disp_df[order(match(disp_df$Disposition, c('Upstream Release', 'Brood Collection', 'Food Distribution', 
                                                           'Wallowa River Outplant', 'Recycled to Fishery', 'Mortality', 'Total'))),]
-    # rename based on recaps
+    # rename dataframes based on recaps_yn
     if(recaps_yn[j] == 'Include Recaps') {
       assign(paste0('recaps_df'), disp_df)
     }

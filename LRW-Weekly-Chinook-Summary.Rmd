@@ -252,10 +252,7 @@ Disposition Summary
 + Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
-```{r Hatchery Disposition Table, echo=FALSE, fig.align='center', warning=FALSE}
-# Table 1
-# kable(h_df, caption = 'Year-to-date capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
-
+```{r Table1_Hatchery_Dispositions, echo=FALSE, fig.align='center', warning=FALSE}
 flex_h <- flextable(h_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
@@ -267,10 +264,7 @@ knit_print(flex_h)
 
 \newpage
 
-```{r Natural Disposition Table, echo=FALSE, fig.align='center', warning=FALSE}
-# Table 2
-# kable(n_df, caption = 'Year-to-date capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).', align = c('l', rep('r', 5)))
-
+```{r Table2_Natural_Dispositions, echo=FALSE, fig.align='center', warning=FALSE}
 flex_n <- flextable(n_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
@@ -280,9 +274,7 @@ flex_n <- flextable(n_df,
 knit_print(flex_n)
 ```
 
-```{r Table 3, echo=FALSE, fig.align='center', warning=FALSE}
-# kable(table_3, caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.', align = c('l', rep('r', 5)))
-
+```{r Table3_Broodstock, echo=FALSE, fig.align='center', warning=FALSE}
 flex_bt <-  flextable(table_3,
           cwidth = c(1,1.5,1.5,1.2)) %>%
   align(j=2:4, align = 'right', part = 'all') %>%
