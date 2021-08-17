@@ -23,9 +23,9 @@ source('./R/sumGRSMEbrood.R') # Brood Collection Summary
 
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
-kus_filename <- NULL
-fins_filename <- "TrappingData_Fins_081621.csv"
-# list.files(path = 'C:/Users/brians/Documents/R/GRSME/data/')
+# grsme_data <- 'kus'
+grsme_data <- 'fins'
+files <- list.files(path = './data/')
 ```
 
 ```{r Estimates and Goals, include = FALSE}
@@ -75,14 +75,14 @@ if(download_FINS_CDMS == TRUE) {
     mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) 
 }
 
-if(!is.null(kus_filename)){ # if using Kus-downloaded data
-  GRSME_df <- read_csv(file = paste0("C:\\Users\\brians\\Documents\\R\\GRSME\\data\\", kus_filename)) %>%
+if(grsme_data == 'kus'){ # if using Kus-downloaded data
+  GRSME_df <- read_csv(paste0('./data/FINS_trapping_NPT_GRSME_Program_', max(str_extract(files[which(grepl('FINS_trapping_NPT_GRSME_Program', list.files('./data/')))], '\\d{4}[-]\\d{2}[-]\\d{2}')), '.csv')) %>%
     mutate(trapped_date = mdy(trapped_date), # make sure trapped_date is a date datatype
            MonthDay = format(as.Date(trapped_date), '%m/%d')) # so this can work properly.
 }
 
-if(!is.null(fins_filename)){ # if using FINS-downloaded data
-  GRSME_df <- read_csv(file=paste0('./data/', fins_filename)) %>%
+if(grsme_data == 'fins'){ # if using FINS-downloaded data
+  GRSME_df <- read_csv(paste0('./data/TrappingData_Fins_', max(str_extract(files[which(grepl('TrappingData_Fins_', list.files('./data/')))], '\\d{6}')), '.csv')) %>%
     clean_weirData() %>%
     mutate(trapped_date = ymd(trapped_date), # make sure trapped_date is a date datatype
     MonthDay = format(as.Date(trapped_date), '%m/%d')) # so this can work properly.
