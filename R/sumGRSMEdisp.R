@@ -13,14 +13,14 @@
 #' @return NULL
 
 
-sumGRSMEdisp <- function(data, origin_) {
+sumGRSMEdisp <- function(data, origin_, trap.year) {
   
   recaps_yn <- c('Include Recaps', 'Exclude Recaps')
   
   for(j in 1:length(recaps_yn)) {
     # Assign Dispositions based on moved_to
     disp_summary <- data %>%
-      filter(trap_year == year(Sys.Date()),  
+      filter(trap_year == trap.year,  
              species == "Chinook",
              if(recaps_yn[j]=='Include Recaps') {recap==recap} else {recap == FALSE}
       ) %>%  
