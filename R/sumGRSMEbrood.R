@@ -12,10 +12,10 @@
 #' @return NULL
 
 
-sumGRSMEbrood <- function(data) {
+sumGRSMEbrood <- function(data, trap.year) {
 
 t3_df <- data %>%
-  filter(trap_year == year(Sys.Date())) %>%
+  filter(trap_year == trap.year) %>%
   mutate(EpiWeek = epiweek(trapped_date),
          FloorDate = floor_date(trapped_date, unit = 'week'),
          Week = format(FloorDate, "%b %d"))
