@@ -24,6 +24,9 @@ source('./R/sumGRSMEbrood.R') # Brood Collection Summary
 # set values
 trap.year <- 2021 
 
+# A better way to get GRSME data from TY 2022-02-10
+# GRSME_data <- get_WeirData(Facility = 'NPT GRSME Program')
+
 # Data Download logic
 download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use existing AdultWeirData.rda
 # grsme_data <- 'kus'
@@ -33,7 +36,7 @@ files <- list.files(path = './data/')
 
 ```{r Estimates and Goals, include = FALSE}
 # Season Return Estimates 
-estimate_date <- "June 16th"  # format: "June 15th"
+estimate_date <- "June 16, 2021"  # format: "June 15th"
 nat_adults <- "200"
 hat_adults <- "632"
 
@@ -245,13 +248,13 @@ include_graphics(path = './www/npt_joseph.png')
 
 \begin{center}
 {\Large Lostine River Weir\par}
-{\large Weekly Chinook Summary: `r format(Sys.time(), "%d %B, %Y")` }
+{\large Past Season Chinook Summary: Return Year 2021 }
 \end{center}
 
 Disposition Summary
 
 + In-season adult return-to-tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
-+ Brood stock collection goals are `r N_brood_goal` natural-origin adults, `r H_brood_goal` hatchery-origin adults, and `r HJ_brood_goal` hatchery-origin jacks. \newline 
++ Brood stock collection goals were `r N_brood_goal` natural-origin adults, `r H_brood_goal` hatchery-origin adults, and `r HJ_brood_goal` hatchery-origin jacks. \newline 
 + Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
@@ -260,7 +263,7 @@ flex_h <- flextable(h_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
   hline(i=nrow(h_df)-1) %>%
-  set_caption(caption = 'Year-to-date capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).')
+  set_caption(caption = 'Return year 2021 capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).')
 
 knit_print(flex_h)
 ```
@@ -272,7 +275,7 @@ flex_n <- flextable(n_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
   hline(i=nrow(n_df)-1) %>%
-  set_caption(caption = 'Year-to-date capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).')
+  set_caption(caption = 'Return year 2021 capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).')
 
 knit_print(flex_n)
 ```
@@ -282,7 +285,7 @@ flex_bt <-  flextable(table_3,
           cwidth = c(1,1.5,1.5,1.2)) %>%
   align(j=2:4, align = 'right', part = 'all') %>%
   hline(i=nrow(table_3)-1) %>%
-  set_caption(caption = 'Weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.')
+  set_caption(caption = 'Return year 2021 weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.')
 
 knit_print(flex_bt)
 ```
@@ -293,7 +296,7 @@ knit_print(flex_bt)
 \blandscape
 
 
-![Current return year (top panel) and five-year average (bottom panel) of mean daily discharge (cubic feet per second) and daily captures of hatchery- and natural-origin adult Chinook salmon at the Lostine River Weir. Discharge recorded at USGS station 1333000 located upstream of the town of Lostine.](LRW_megaplot.jpg)
+![Return year 2021 (top panel) and five-year average (bottom panel) of mean daily discharge (cubic feet per second) and daily captures of hatchery- and natural-origin adult Chinook salmon at the Lostine River Weir. Discharge recorded at USGS station 1333000 located upstream of the town of Lostine.](LRW_megaplot.jpg)
 
 
 \elandscape
@@ -333,6 +336,7 @@ Johnson, B (NPT)\\
 Johnson, D (NPT)\\
 Kozlowski, C (ODFW)\\
 Lovrak, J (CTUIR)\\
+Lance, M (ODFW)\\
 Lemanski, J (ODFW)\\
 Maxwell, A (ODFW)\\
 McLean, M (CTUIR)\\
