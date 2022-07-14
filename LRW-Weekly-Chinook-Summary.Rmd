@@ -1,5 +1,5 @@
 ---
-# title: "Nez Perce Tribe"
+# title: "Lostine River Weir Weekly Chinook Summary"
 #author: "Tyler Stright"
 #date: '`r format(Sys.time(), "%d %B, %Y")`'
 header-includes:
@@ -22,7 +22,7 @@ source('./R/sumGRSMEdisp.R') # FINS Disposition Summary
 source('./R/sumGRSMEbrood.R') # Brood Collection Summary
 
 # set values
-trap.year <- 2021 
+trap.year <- 2022 
 
 # A better way to get GRSME data from TY 2022-02-10
 # GRSME_data <- get_WeirData(Facility = 'NPT GRSME Program')
@@ -36,35 +36,33 @@ files <- list.files(path = './data/')
 
 ```{r Estimates and Goals, include = FALSE}
 # Season Return Estimates 
-estimate_date <- "June 16, 2021"  # format: "June 15th"
-nat_adults <- "200"
-hat_adults <- "632"
+estimate_date <- "June 23, 2022"  # format: "June 15th"
+nat_adults <- "619"
+hat_adults <- "778"
 
 # Brood Stock Collection Goals
-N_brood_goal <- "40" # natural-origin adults
-H_brood_goal <- "120" # hatchery-origin adults
-HJ_brood_goal <- "6" # hatchery-origin jacks
+N_brood_goal <- "64" # natural-origin adults
+H_brood_goal <- "96" # hatchery-origin adults
+HJ_brood_goal <- "6" # hatchery-origin jacks #always 6
 
 # Sliding Scale Goals
-SS_upstream <- "60%" # % hatchery passed upstream
-SS_brood <- "25%"  # % natural kept for brood
+SS_upstream <- "40%" # % hatchery passed upstream
+SS_brood <- "40%"  # % natural kept for brood
 ```
 
-```{r CDMS Login, include = FALSE}
-keys <- cdmsKeys()
-cdms_host <- keys[1]
-# cdms_host <- 'http://localhost:80/'  # DEV
-username <- keys[2]
-api_key <- keys[3]
+```{r cdms-login, eval = TRUE, message = FALSE, include=FALSE}
+ cdms_host <- 'https://npt-cdms.nezperce.org'# REMOVE?
+ api_key = 'api_user'# REMOVE?
+ # cdmsLogin('api_user', api_key, cdms_host = cdms_host)# REMOVE?
 
-cdmsLogin(username, api_key, cdms_host)
+ cdmsR::cdmsLogin('brians', 'bs2018')
 ```
 
 ```{r Get Data, include = FALSE}
 # Adult Weir (FINS) data ----
 if(download_FINS_CDMS == TRUE) {
   # Download fins data.
-  AdultWeirData <- getDatasetView(99)
+  AdultWeirData <- get_WeirData()
   # Save to the data folder as an R data file
   save(AdultWeirData, file = './data/AdultWeirData.rda')
   
@@ -88,8 +86,11 @@ if(grsme_data == 'kus'){ # if using Kus-downloaded data
 }
 
 if(grsme_data == 'fins'){ # if using FINS-downloaded data
-  GRSME_df <- read_csv(paste0('./data/TrappingData_Fins_', max(str_extract(files[which(grepl('TrappingData_Fins_', list.files('./data/')))], '\\d{6}')), '.csv')) %>%
-    clean_weirData() %>%
+  GRSME_df <- read_csv('./data/TrappingData_Fins.csv') %>%
+
+    # paste0('./data/TrappingData_Fins_', max(str_extract(files[which(grepl('TrappingData_Fins_', list.files('./data/')))], '\\d{6}')), '.csv')) %>%
+
+      clean_weirData() %>%
     mutate(trapped_date = ymd(trapped_date), # make sure trapped_date is a date datatype
     MonthDay = format(as.Date(trapped_date), '%m/%d')) # so this can work properly.
 }
@@ -204,16 +205,22 @@ scaleFactor <- round(max(LRW_megadf$Catch, na.rm=TRUE)/max(LRW_megadf$MeanDailyF
 # Plot
 lrw_megaplot <- ggplot(LRW_megadf, aes(x=trapped_date)) +
   # Data
-  geom_bar(data = LRW_megadf, aes(x=trapped_date, y=Catch, fill = origin), color = 'black',
+  geom_bar(data = LRW_megadf, aes(x = trapped_date, y = Catch, fill = origin), color = 'black',
            stat='identity', position = 'stack', width = 1) +
-  geom_line(data = LRW_megadf, aes(x = trapped_date, y=MeanDailyFlow*scaleFactor, linetype= "Discharge"),
-                        color = 'blue', size = 1) +
+  geom_line(data = LRW_megadf, 
+            aes(x = trapped_date, y = MeanDailyFlow*scaleFactor, linetype= "Discharge"), 
+            color = 'blue', size = 1) +
   # Y axis
-  scale_y_continuous(name='Number of Chinook Adults', breaks = scales::breaks_pretty(7), limits = c(0, max(30, plot_max)),
-                     expand = c(0, 0), sec.axis=sec_axis(~./scaleFactor, name = expression(paste("Discharge ("*ft^3*"/s)", sep='')), 
-                                                                              breaks = scales::breaks_pretty(7))) +
+  scale_y_continuous(name = 'Number of Chinook Adults', 
+                     breaks = scales::breaks_pretty(7), 
+                     limits = c(0, max(30, plot_max)),
+                     expand = c(0, 0), sec.axis=sec_axis(~./scaleFactor, 
+                     name = expression(paste("Discharge ("*ft^3*"/s)", sep='')), 
+                     breaks = scales::breaks_pretty(7))) +
   # X Axis
-  scale_x_date(name = '', labels = scales::label_date("%m/%d"), breaks = scales::breaks_pretty(7), expand = c(.001, .001)) +
+  scale_x_date(name = '', labels = scales::label_date("%m/%d"), 
+               breaks = scales::breaks_pretty(7), 
+               expand = c(.001, .001)) +
   # Theme
   theme_bw() +
   theme(
@@ -234,7 +241,11 @@ lrw_megaplot <- ggplot(LRW_megadf, aes(x=trapped_date)) +
   scale_fill_manual(values =c("Natural"='#FDE735FF', "Hatchery" = '#482677FF')) +
   facet_grid(rows=vars(facet))
 
-ggsave(filename = 'LRW_megaplot.jpg', device='jpeg', height = 7, width = 10, units = "in")
+ggsave(filename = 'LRW_megaplot.jpg', 
+       device='jpeg', 
+       height = 7, 
+       width = 10, 
+       units = "in")
 
 ```
 
@@ -248,13 +259,14 @@ include_graphics(path = './www/npt_joseph.png')
 
 \begin{center}
 {\Large Lostine River Weir\par}
-{\large Past Season Chinook Summary: Return Year 2021 }
+{\large Weekly Chinook Summary: `r format(Sys.time(), '%B %d, %Y')`}
 \end{center}
+
 
 Disposition Summary
 
 + In-season adult return-to-tributary estimates were updated on `r estimate_date` to `r nat_adults` natural-origin and `r hat_adults` hatchery-origin adults. \newline 
-+ Brood stock collection goals were `r N_brood_goal` natural-origin adults, `r H_brood_goal` hatchery-origin adults, and `r HJ_brood_goal` hatchery-origin jacks. \newline 
++ Brood stock collection goals are `r N_brood_goal` natural-origin adults, `r H_brood_goal` hatchery-origin adults, and `r HJ_brood_goal` hatchery-origin jacks. \newline 
 + Composition of adults passed upstream: `r H_upstream_calc`% Hatchery (Sliding scale goal $\leq$ `r SS_upstream`) \newline
 + Composition of adults kept for brood: `r N_brood_calc`% Natural (Sliding scale goal $\geq$ `r SS_brood`) \newline
 
@@ -263,7 +275,7 @@ flex_h <- flextable(h_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
   hline(i=nrow(h_df)-1) %>%
-  set_caption(caption = 'Return year 2021 capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).')
+  set_caption(caption = 'Return year 2022 capture and disposition summary of Hatchery Chinook Salmon (Numbers in parentheses exclude recaptures).')
 
 knit_print(flex_h)
 ```
@@ -275,7 +287,7 @@ flex_n <- flextable(n_df,
           cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
   align(j=2:6, align = 'right', part = 'all') %>%
   hline(i=nrow(n_df)-1) %>%
-  set_caption(caption = 'Return year 2021 capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).')
+  set_caption(caption = 'Return year 2022 capture and disposition summary of Natural Chinook Salmon (Numbers in parentheses exclude recaptures).')
 
 knit_print(flex_n)
 ```
@@ -285,7 +297,7 @@ flex_bt <-  flextable(table_3,
           cwidth = c(1,1.5,1.5,1.2)) %>%
   align(j=2:4, align = 'right', part = 'all') %>%
   hline(i=nrow(table_3)-1) %>%
-  set_caption(caption = 'Return year 2021 weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.')
+  set_caption(caption = 'Return year 2022 weekly summary of captured adult Chinook Salmon and Bull Trout, excluding recaptures.  Broodstock collection for Chinook Salmon is shown in parenthesis. *Asterisk indicates an incomplete week.')
 
 knit_print(flex_bt)
 ```
@@ -296,7 +308,7 @@ knit_print(flex_bt)
 \blandscape
 
 
-![Return year 2021 (top panel) and five-year average (bottom panel) of mean daily discharge (cubic feet per second) and daily captures of hatchery- and natural-origin adult Chinook salmon at the Lostine River Weir. Discharge recorded at USGS station 1333000 located upstream of the town of Lostine.](LRW_megaplot.jpg)
+![Return year 2022 (top panel) and five-year average (bottom panel) of mean daily discharge (cubic feet per second) and daily captures of hatchery- and natural-origin adult Chinook salmon at the Lostine River Weir. Discharge recorded at USGS station 1333000 located upstream of the town of Lostine.](LRW_megaplot.jpg)
 
 
 \elandscape
@@ -331,14 +343,14 @@ Hesse, J (NPT)\\
 Humphreys, J (TU)\\
 James, G (CTUIR)\\
 Johnson, B (NPT)\\
+Johnson, D (NPT)\\
 \end{minipage}
 \begin{minipage}[t]{0.25\textwidth}
-Johnson, D (NPT)\\
 Kozlowski, C (ODFW)\\
 Lovrak, J (CTUIR)\\
 Lance, M (ODFW)\\
 Lemanski, J (ODFW)\\
-Maxwell, A (ODFW)\\
+Maxwell, A (TU)\\
 McLean, M (CTUIR)\\
 McOmie, E (BPA)\\
 Nisbitt, K (Wallowa CTY)\\
