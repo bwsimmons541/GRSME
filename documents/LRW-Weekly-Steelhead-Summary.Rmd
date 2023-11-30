@@ -1,0 +1,515 @@
+---
+title: "Lostine River Weir Steelhead Update"
+author: "Brian Simmons"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    css: ../www/style.css
+    theme: readable
+    toc: false #notice changes in indentation. indentation MUST be correct for YAML header
+    toc_depth: 2
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    includes:
+      in_header: npt_joseph.html
+      # before_body: npt_joseph.html # includes the header to the right of the toc same width as report body.
+---
+
+```{r setup, include=FALSE}
+#Set up global code chunk options for document
+library(tidyverse)
+library(flextable)
+# library(cdmsR)
+# library(cuyem)
+
+knitr::opts_chunk$set(echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE)
+
+
+options(knitr.kable.NA = '-')
+```
+
+```{r packages, include = FALSE, eval = FALSE}
+# devtools::install_github("DesiQuintans/librarian") # if you need librarian package
+
+librarian::shelf(knitr,
+                 flextable,
+                 ryankinzer/cdmsR,
+                 ryankinzer/cuyem,
+                 tidyverse)
+
+```
+
+
+
+
+```{r data-import, include = FALSE}
+
+# Uncomment and load to get new data
+# cdmsLogin('brians','bs2018')
+
+# tmp1 <- get_WeirData(Facility = "NPT GRSME Program",
+#                               Species = "Steelhead")
+# tmp2 <- get_WeirData(Facility = "NPT GRSME Program",
+#                         Species = "Rainbow Trout")
+# tmp3 <- get_WeirData(Facility =  "NPT GRSME Program",
+#                         Species = "Bull Trout")
+# 
+# 
+# lrw_omykiss <- bind_rows(tmp1, tmp2, tmp3) %>%
+#   clean_weirData() %>%
+#   mutate(trapped_date = ymd(trapped_date),
+#          MonthDay = format(as.Date(trapped_date), '%m/%d'))
+# 
+# rm(tmp1, tmp2, tmp3)
+# 
+# save(lrw_omykiss, file = '../data/lrw_omykiss.rda')
+# rm(lrw_omykiss)
+
+load('../data/lrw_omykiss.rda')
+source('../R/07_sumSTHdisp.R')
+source('../R/07_sumRBTdisp.R')
+source('../R/07_sumSTHweekly.R')
+
+trap.year <- 2023
+yr_range <- (trap.year-9):trap.year
+
+
+```
+
+
+
+
+```{r figure-theme, message = FALSE, include = FALSE}
+
+# Figure Settings
+theme_set(theme_bw() +
+          theme(panel.grid  = element_blank(),
+                panel.background = element_blank(),
+                legend.position = 'bottom',
+                text = element_text(family = 'sans'),
+                plot.title = element_text(hjust = 0.5),
+                plot.subtitle = element_text(hjust = 0.5)
+          ))
+
+```
+
+```{r Data Processing: Dispositions, include=FALSE}
+
+# I dont know what all this gets me, or if the data are correct...
+
+# Hatchery Dispositions
+hsth_df <- sumSTHdisp(data = lrw_omykiss, origin_ ='Hatchery', trap.year = trap.year)
+
+# Natural Dispositions
+nsth_df <- sumSTHdisp(data = lrw_omykiss, origin_ ='Natural', trap.year = trap.year)
+
+# Natural Rainbow Dispositions
+nrbt_df <- sumRBTdisp(data = lrw_omykiss, origin_ = 'Natural', trap.year = trap.year)
+
+# Hatchery Rainbow DDispositions
+hrbt_df <- sumRBTdisp(data = lrw_omykiss, origin_ = 'Hatchery', trap.year = trap.year)
+
+
+# Composition Percentages
+hat_up <- as.numeric(str_extract(hsth_df[[1,4]], '^[:digit:]*')) # upstream
+nat_up <- as.numeric(str_extract(nsth_df[[1,4]], '^[:digit:]*')) # upstream
+  H_upstream_calc <- round((hat_up/(hat_up+nat_up))*100, 0)
+
+hat_BS <- as.numeric(str_extract(hsth_df[[2,4]], '^[:digit:]*')) # broodstock
+nat_BS <- as.numeric(str_extract(nsth_df[[2,4]], '^[:digit:]*')) # broodstock
+  N_brood_calc <- round((nat_BS/(hat_BS+nat_BS))*100, 0)
+
+```
+
+```{r}
+
+# Flow Data ----
+start_date <- paste0(trap.year, '-03-01')
+end_date <- paste0(trap.year, '-08-01')
+
+req_url <- paste("https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hydro_download.aspx?station_nbr=13330000&start_date=",
+                 start_date, # start date
+                 "%2012:00:00%20AM&end_date=",
+                 end_date, #Sys.Date(), # end date
+                 "%2012:00:00%20AM&dataset=MDF&format=csv",  # output: CSV
+                 sep='')
+
+flow_df <- read.delim(req_url, sep = '\t') %>%
+  mutate(record_date = mdy(record_date),
+         legend = paste(Sys.Date()-1, 'Discharge'),
+         MonthDay = format(as.Date(record_date), '%m/%d'),
+         facet = paste(trap.year)) %>%
+  select(MonthDay, MeanDailyFlow = mean_daily_flow_cfs, facet) 
+
+start_date_H <- paste0(trap.year-5, '-03-01')
+end_date_H <- paste0(trap.year-1, '-08-01')
+
+req_url2 <- paste("https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hydro_download.aspx?station_nbr=13330000&start_date=",
+                  start_date_H, # start date
+                  "%2012:00:00%20AM&end_date=",
+                  end_date_H, # end date
+                  "%2012:00:00%20AM&dataset=MDF&format=csv",  # output: CSV
+                  sep='')
+
+flow_df_H <- read.delim(req_url2, sep = '\t') %>%
+  mutate(record_date = mdy(record_date),
+         legend = paste(Sys.Date()-1, 'Discharge'),
+         MonthDay = format(as.Date(record_date), '%m/%d')) %>%
+  group_by(MonthDay) %>%
+  summarize(MeanDailyFlow = mean(mean_daily_flow_cfs)) %>%
+  mutate(facet = paste(trap.year-5, '-', trap.year-1, " Average", sep=''))
+
+flow_all <- bind_rows(flow_df, flow_df_H) %>%
+  mutate(trapped_date = paste(trap.year, '/', as.character(MonthDay), sep = ''),
+         trapped_date = ymd(trapped_date)) %>% # trapped date cheat.
+  filter(between(trapped_date, ymd(paste0(trap.year, '-03-01')), ymd(paste0(trap.year, '-08-01'))))
+
+
+
+# Current year's catch ----
+LRW_catch <- lrw_omykiss %>%
+  filter(species == 'Steelhead',
+         recap == FALSE,
+         trap_year == trap.year) %>%
+  group_by(trapped_date, MonthDay, origin) %>%
+  summarize(Catch = sum(count, na.rm = TRUE)) %>%
+  mutate(facet = paste(trap.year))
+
+# Historic Catch ----
+LRW_historic <- lrw_omykiss %>%
+  filter(facility == 'NPT GRSME Program', 
+         species == 'Steelhead',
+         recap == FALSE,
+         !trap_year %in% c(1997:(trap.year-6), trap.year)) %>% # exclude everything 1997 to trap year-6 & the trap year
+  group_by(MonthDay, origin) %>%  # get the total catch for Month/Day
+  summarize(AllCatch = sum(count, na.rm = TRUE)) %>%
+  mutate(Catch = AllCatch/5) %>% # calculate Mean Daily Catch: AllCatch from years, divided by number of years (5)
+  mutate(trapped_date = ymd(paste(trap.year, '-', MonthDay)),
+         facet = paste(trap.year-5, '-', trap.year-1, " Average", sep=''))
+
+LRW_all <- bind_rows(LRW_catch, LRW_historic)
+
+# MEGA DF!
+LRW_megadf <- full_join(LRW_all, flow_all, by = c('trapped_date', 'facet', 'MonthDay'))
+
+LRW_megadf$facet <- factor(LRW_megadf$facet, levels = c(trap.year, paste0(trap.year-5, '-', trap.year-1, ' Average')))
+
+```
+
+
+```{r Graph Creation, include = FALSE}  
+# get Plot Max value for Y axis
+plot_max_df <- LRW_catch %>%
+  group_by(trapped_date) %>%
+  summarize(Count = sum(Catch)) 
+plot_max <- max(plot_max_df$Count)+2
+
+# Calculate scale factor (for dual Y axes)
+scaleFactor <- round(max(LRW_megadf$Catch, na.rm=TRUE)/max(LRW_megadf$MeanDailyFlow, na.rm=TRUE), 3)
+
+# Plot
+lrw_megaplot_sth <- ggplot(LRW_megadf, aes(x=trapped_date)) +
+  # Data
+  geom_bar(data = LRW_megadf, aes(x = trapped_date, y = Catch, fill = origin), color = 'black',
+           stat='identity', position = 'stack', width = 1) +
+  geom_line(data = LRW_megadf, 
+            aes(x = trapped_date, y = MeanDailyFlow*scaleFactor, linetype= "Discharge"), 
+            color = 'blue', size = 1) +
+  # Y axis
+  scale_y_continuous(name = 'Number of Steelhead', 
+                     breaks = scales::breaks_pretty(7), 
+                     limits = c(0, max(0, plot_max)),
+                     expand = c(0, 0), sec.axis=sec_axis(~./scaleFactor, 
+                     name = expression(paste("Discharge ("*ft^3*"/s)", sep='')), 
+                     breaks = scales::breaks_pretty(7))) +
+  # X Axis
+  scale_x_date(name = '', labels = scales::label_date("%m/%d"), 
+               breaks = scales::breaks_pretty(7), 
+               expand = c(.001, .001)) +
+  theme(
+    axis.text.x = element_text(hjust = 1, angle = 45, size = 14),
+    axis.ticks.length.x = unit(.15, "cm"),
+    axis.title.y.left=element_text(size = 16),
+    axis.text.y.left=element_text(size = 14),
+    axis.title.y.right=element_text(color="blue", size = 16),
+    axis.text.y.right=element_text(color="blue", size = 14),
+    # panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.title = element_blank(), 
+    legend.box.background = element_blank(), # element_rect(colour = "black")
+    panel.spacing = unit(2, 'lines')
+  ) + 
+  guides(color = FALSE) +
+  scale_fill_manual(values =c("Natural"='#FDE735FF', "Hatchery" = '#482677FF')) +
+  facet_grid(rows=vars(facet))
+
+```
+
+```{r Data Processing: Weekly Steelhead Catch, eval = TRUE, include=FALSE}
+
+# there is no steelhead brood
+table_3 <- sumSTHweekly(data = lrw_omykiss, trap.year = trap.year)
+```
+
+\
+
+### Disposition & Capture Summary
+
+\
+
+* The Lostine River weir started operating on March 1, 2023 and captured the first steelhead of the year on April 1, 2023.
+* The weir has operated continuously except from 9:00 PM on May 2 to 7:00 AM on May 5, and 9:00 PM on May 17 to 8:00 AM on May 24, 2023 when it was inoperable due to high flows and debris.
+* There is no supplementation program for Lostine River steelhead. However, this report shows all possible dispositions of fish captured at the Lostine River weir to remain consistent across different reporting species. 
+
+\
+
+```{r Table1_Hatchery_Dispositions, ft.align = 'center'}
+
+flextable(hsth_df,
+          cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
+  align(j=2:4, align = 'right', part = 'all') %>%
+  hline(i=nrow(hsth_df)-1) %>%
+  set_caption(caption = paste0('Table 1. Return year ',trap.year,' capture and disposition summary of hatchery steelhead (Numbers in parentheses exclude recaptures).'),
+  style = "Table Caption")
+
+```
+
+<br>
+<br>
+
+```{r Table2_Natural_Dispositions, ft.align = 'center'}
+
+flextable(nsth_df,
+          cwidth = c(1.3,0.7,0.7,0.7,1.2,1.2)) %>%
+  align(j=2:4, align = 'right', part = 'all') %>%
+  hline(i=nrow(nsth_df)-1) %>%
+  set_caption(caption = paste0('Table 2. Return year ',trap.year,' capture and disposition summary of natural steelhead (Numbers in parentheses exclude recaptures).'),
+  style = "Table Caption")
+
+
+```
+
+\
+\
+
+```{r Table3_weekly_catch, ft.align = 'center'}
+flextable(table_3,
+          cwidth = c(1,1.5,1.5,1.2)) %>%
+  align(j=2:4, align = 'center', part = 'all') %>%
+  hline(i=nrow(table_3)-1) %>%
+  set_caption(caption = paste0('Table 3. Return year ',trap.year,' weekly summary of captured steelhead and Rainbow Trout, excluding recaptures. *Asterisk indicates an incomplete week.'),
+  style = "Table Caption")
+
+
+```
+
+\
+\
+
+### Current Arrival & Annual Run Timing
+
+\
+
+```{r figure1, eval=TRUE, fig.align='center', fig.cap= 'Figure 1. Return year 2023 (top panel) and five-year average (bottom panel) of mean daily discharge (cubic feet per second) and daily captures of hatchery- and natural-origin Steelhead at the Lostine River Weir. Discharge recorded at USGS station 1333000 located upstream of the town of Lostine.'}
+
+lrw_megaplot_sth +
+  labs(title = 'Daily capture of natural and hatchery steelhead at the Lostine River weir')
+
+```
+
+\
+\
+
+```{r figure2, eval=TRUE, fig.align='center', fig.cap= 'Figure 2. Daily capture of steelhead at the Lostine River weir. The red vertical line idicates current day of year.', fig.height=8 }
+
+today = Sys.Date() %>% yday() %>% as.Date(origin = '1899-12-31')
+
+stacked_histo <- lrw_omykiss %>%
+  filter(species == 'Steelhead',
+         trap_year %in% yr_range,
+         recap == FALSE) %>%
+  mutate(trap_day = yday(trapped_date)) %>%
+  mutate(trap_day = as.Date(trap_day, origin = '1899-12-31')) %>%
+  mutate(trap_year = as.factor(trap_year)) %>%
+  ggplot(aes(x = trap_day)) +
+  geom_histogram(binwidth = 1, color = 'black') +
+  geom_vline(xintercept = today, color = 'red', size = 0.75) +
+  facet_grid(trap_year ~ ., scales = 'free_y') +
+  labs(x = 'Date of trapping',
+       y = 'Unique fish count',
+       title = 'Daily Capture of Steelhead at the Lostine River Weir')
+
+stacked_histo
+
+```
+
+\
+\
+
+```{r table4_arrival, ft.align='center'}
+# descriptive stats ------------------------------------------------
+arrival_timing <- lrw_omykiss %>%
+  filter(species == 'Steelhead',
+         trap_year %in% yr_range,
+         recap == FALSE) %>%
+  mutate(trap_day = yday(trapped_date)) %>%
+  group_by(trap, trap_year) %>%
+  summarise(unique_fish = sum(count),
+            first_fish = min(trap_day),
+            perc_10 = quantile(trap_day, 0.1),
+            median = quantile(trap_day, 0.5),
+            perc_90 = quantile(trap_day, 0.9),
+            last_fish = max(trap_day)) %>%
+  mutate(across(c(first_fish, perc_10, median, perc_90, last_fish),
+                as.Date, origin = '1900-01-01')) %>%
+  mutate(across(c(first_fish, perc_10, median, perc_90, last_fish),
+                format,'%b %d')) %>%
+  ungroup()
+
+
+arrival_timing %>%
+  mutate(trap_year = as.character(trap_year)) %>%
+  select(trap_year:last_fish) %>%
+  flextable() %>%
+  align(j = 2:6, align = 'center', part = 'all') %>%
+  set_header_labels(trap_year = 'Year', unique_fish = 'Unique Fish', first_fish = 'First Capture', perc_10 = '10th Percentile', median = 'Median', perc_90 = '90th Percentile', last_fish = 'Final Capture') %>%
+  set_caption(
+  caption = paste0('Table 4. 10-year arrival timing of steelhead at the Lostine River Weir.'),
+  style = "Table Caption")
+
+```
+
+
+\
+\
+\
+<center>
+**Distribution List**
+</center>
+\
+\
+\
+
+:::: {style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr"}
+
+::: {}
+
+:::
+
+::: {}
+Beals, S (ODFW)  
+Brady, A (BPA)  
+Brandt, E (ODFW)  
+Bratcher, K (ODFW)  
+Brigante, E (ODFW)  
+Bronson, P (CTUIR)  
+Craft, N (ODFW)  
+Deal, D (ODFW)  
+Engle, R (FWS)  
+Farnam, B (NOAA)  
+Feldhaus, J (ODFW)  
+Flesher, M (ODFW)   
+Garza, Gabriel (ODFW)  
+Gee, S (ODFW)  
+Gibbs, A (ODFW)  
+Greiner, M (ODFW)  
+Hagenah, P (Wallowa CTY)  
+Harbeck, J (NPT)  
+Harrod, R (ODFW)  
+Hesse, J (NPT)  
+Humphreys, J (TU)  
+Johnson, B (NPT)  
+
+:::
+
+::: {}
+
+:::
+
+::: {}
+
+Johnson, D (NPT)  
+Kozlowski, C (ODFW)  
+Lovrak, J (CTUIR)  
+Lance, M (ODFW)  
+Lemanski, J (ODFW)  
+Maxwell, A (TU)  
+McLean, M (CTUIR)  
+McOmie, E (BPA)  
+Nisbitt, K (Wallowa CTY)  
+Oatman, J (NPT)  
+Robertson, M (FWS)  
+Rumelhart, R (NPT)    
+Treadway, E (ODFW)  
+Smith, J (ODFW)  
+Vatland, S (NPT)  
+Vogel, J (NPT)  
+Watry, C (NPT)  
+Wiese, N (USFWS)  
+Wolfe, W (Landowner)  
+Yanke, J (ODFW)  
+Yearout, J (NPT)  
+Young, B (NPT)  
+Zollman, R (NPT)
+
+:::
+
+::: {}
+
+:::
+
+::::
+
+\
+\
+\
+<center>
+**Please direct questions regarding content of this report to:**  
+\
+**Brian Simmons**  
+Grande Ronde Supplemenetation Monitoring and Evalutation  
+Fisheries Biologist II  
+541-432-2515  
+brians@nezperce.org  
+\
+or  
+\
+**Shane Vatland**  
+Grand Ronde Supplementation Monitoring and Evaluation  
+Project Leader  
+541-432-2508  
+shanev@nezperce.org  
+\
+**Nez Perce Tribe**  
+Joseph Field Office  
+500 North Main Street  
+P.O.Box 909  
+Joseph, OR 97846
+</center>
+\
+\
+\
+\
+\
+\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
