@@ -1,6 +1,6 @@
 ---
 # title: "Lostine River Weir Weekly Chinook Summary"
-#author: "Tyler Stright"
+#author: "Brian Simmons"
 #date: '`r format(Sys.time(), "%d %B, %Y")`'
 header-includes:
 - \usepackage{pdflscape}

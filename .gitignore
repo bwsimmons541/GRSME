@@ -4,3 +4,6 @@
 .Ruserdata
 /data
 R/cdms_api_keys.R
+.pdf
+.html
+.log
