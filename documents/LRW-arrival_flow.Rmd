@@ -1,0 +1,237 @@
+---
+#title: "LRW_arrival"
+#author: "Brian Simmons"
+#date: "2022-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#Currently not knitting this into a Markdown doc 
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Loadout, include = FALSE}
+devtools::install_github("DesiQuintans/librarian", force = TRUE) # if you need librarian package
+
+librarian::shelf(ryankinzer/cdmsR,
+                 ryankinzer/cuyem,
+                 tidyverse,
+                 scales)
+
+```
+
+```{r cdms-login, eval = TRUE, message = FALSE, include=FALSE}
+ 
+# UNNECESSARY UNLESS DOWNLOADING DATA
+
+  # cdms_host <- 'https://npt-cdms.nezperce.org'# REMOVE?
+  # api_key = 'api_user'# why are you using this to set a value for just below?
+  # cdmsR::cdmsLogin('api_user', api_key, cdms_host = cdms_host)# Generic Login 
+  
+  # cdmsR::cdmsLogin('api_user', 'api_user')
+
+```
+
+```{r Load Data, eval = TRUE, include = FALSE}
+
+load('../data/lrw_catch_flow.rda')
+
+#SKIP BELOW UNLESS STARTING FROM RAW DATA ----
+
+# Data Download logic
+# download_FINS_CDMS <- FALSE # TRUE = download and save new FINS data from CDMS; FALSE = use
+
+# # Adult Weir (FINS) data
+# if(download_FINS_CDMS == TRUE) {
+#   # Download fins data.
+#   AdultWeirData <- get_WeirData(Facility  = 'NPT GRSME Program')
+#   # Save to the data folder as an R data file
+#   save(AdultWeirData, file = './data/AdultWeirData.rda')
+# 
+#     # Clean weir data
+#   AdultWeirData_clean <- clean_weirData(AdultWeirData) %>%
+#     mutate(MonthDay = format(as.Date(trapped_date), '%m/%d'))
+# 
+#   GRSME_df <- AdultWeirData_clean  
+# } else {
+#   load(file = './data/AdultWeirData.rda')
+#     # Clean weir data
+#   AdultWeirData_clean <- clean_weirData(AdultWeirData) %>%
+#     mutate(MonthDay = format(as.Date(trapped_date), '%m/%d')) #fix data format
+# }
+```
+
+```{r DATA Organizaiton}
+
+# SKIP BELOW UNLESS STARTING FROM RAW DATA ----
+
+# # Organize weir data to desired fields
+# lrw <- AdultWeirData_clean %>%
+#   filter(trap_year %in% 2008:2022) %>% # only contains 2009+
+#   mutate("doy" = yday(trapped_date)) %>%
+#   select(trap_year, 
+#          trapped_date, 
+#          doy,
+#          MonthDay,
+#          count, 
+#          species, 
+#          run, 
+#          sex, 
+#          origin, 
+#          length, 
+#          age_designation, 
+#          recap, 
+#          weir, 
+#          stream)
+# 
+# # CATCH by date
+# lrw_catch <- lrw %>%
+#   filter(species == 'Chinook',
+#          recap == FALSE,
+#          age_designation == 'Adult') %>%
+#   group_by(species,
+#            trap_year,
+#            trapped_date,
+#            MonthDay) %>%
+#   summarize(catch = sum(count, na.rm = TRUE))
+# 
+# 
+# # Flow Data
+# trap.year = 2022
+# start_date <- '2009-01-01'
+# end_date <- '2022-09-30'
+# 
+# 
+#       req_url2 <- paste("https://apps.wrd.state.or.us/apps/sw/hydro_near_real_time/hydro_download.aspx?station_nbr=13330000&start_date=",
+#                         start_date, # start date
+#                         "%2012:00:00%20AM&end_date=",
+#                         end_date, # end date
+#                         "%2012:00:00%20AM&dataset=MDF&format=csv",  # output: CSV
+#                         sep='')
+#       
+#       flow <- read.delim(req_url2, sep = '\t') %>%
+#         mutate(record_date = mdy(record_date),
+#                mean_daily_flow = mean_daily_flow_cfs) %>%
+#         select(mean_daily_flow, record_date)
+# 
+# 
+# # Combine catch and flow
+# 
+# lrw_catch_flow <- full_join(lrw_catch, flow, by = c('trapped_date' = 'record_date'), suffix = c("", "_flow")) 
+# 
+# 
+# # Create date filter
+# lrw_catch_flow <- lrw_catch_flow%>%
+#   mutate(filter_date = paste(trap.year, '/', as.character(MonthDay), sep = ''),
+#          filter_date = ymd(filter_date),
+#          catch = as.double(catch)) %>% # trapped date cheat.
+#   filter(between(filter_date, ymd(paste0(trap.year, '-05-30')), ymd(paste0(trap.year, '-09-21'))))
+# 
+# save(lrw_catch_flow, file = './data/lrw_catch_flow.rda')
+      
+```  
+
+
+```{r PLOT all catch by year}
+
+#get Plot Max value for Y axis
+plot_max <- max(lrw_catch_flow$catch)+2
+
+# Calculate scale factor (for dual Y axes)
+scaleFactor <- round(max(lrw_catch_flow$catch, na.rm=TRUE)/max(lrw_catch_flow$mean_daily_flow, na.rm=TRUE), 3)
+
+
+#Plot
+
+p_lrw <- ggplot(lrw_catch_flow, aes(x=filter_date)) + #Use filter date to standardize X axis. could have also used day of year
+  
+  #Column chart
+  # geom_col(data = lrw_catch_flow, aes(x = filter_date, y = catch, fill = species), color = 'black', stat='identity', position = 'stack', width = 1) +
+  
+  # Bar Chart         
+  geom_bar(data = lrw_catch_flow, aes(x = filter_date, y = catch, fill = species), color = 'black', stat='identity', position = 'stack', width = 1) +
+
+  geom_line(data = lrw_catch_flow, 
+            aes(x = filter_date, y = mean_daily_flow*scaleFactor, linetype= "Discharge"), 
+            color = 'blue', size = 0.4) +
+  # Y axis
+  scale_y_continuous(name = 'Number of Chinook Adults', 
+                     breaks = breaks_pretty(n = 4), 
+                     limits = c(0, max(0, plot_max)), # replaced plot_max with 140
+                     expand = c(0, 0), sec.axis=sec_axis(~./scaleFactor, 
+                     name = expression(paste("Discharge ("*ft^3*"/s)", sep='')), 
+                     breaks = breaks_pretty(n = 4))) +
+  # X Axis
+  scale_x_date(name = 'Date',
+               breaks = breaks_pretty(5)) +
+               
+  # Theme
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(hjust = 1, angle = 45, size = 14),
+    axis.ticks.length.x = unit(.15, "cm"),
+    axis.title.y.left=element_text(size = 16),
+    axis.text.y.left=element_text(size = 14),
+    axis.title.y.right=element_text(color="blue", size = 16),
+    axis.text.y.right=element_text(color="blue", size = 14),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = 'top',
+    legend.title = element_blank(), 
+    legend.box.background = element_blank(), # element_rect(colour = "black")
+    panel.spacing = unit(2, 'lines')
+  ) + 
+  guides(color = "none") +
+  # scale_fill_viridis(discrete = TRUE, option = "D") +
+  scale_fill_manual(values =c("Chinook"='#FDE735FF')) +
+  facet_wrap(~ trap_year, ncol = 2)
+
+p_lrw
+ 
+      ggsave(
+        'lrw_arrival.pdf',
+        plot = last_plot(),
+        device = "pdf",
+        path = '../plots/',
+        scale = 1,
+        width = 7.5,
+        height = 10,
+        units = "in",
+        dpi = 300,
+        limitsize = TRUE,
+        bg = NULL,
+      )
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
