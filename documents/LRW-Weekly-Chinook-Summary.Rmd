@@ -18,7 +18,7 @@ librarian::shelf(knitr,
                  ryankinzer/cuyem,
                  tidyverse)
 
-source('../R/01_cdms_api_keys.R')
+source('../R/cdms_api_keys.R')
 source('../R/02_sumGRSMEdisp.R') # FINS Disposition Summary
 source('../R/03_sumGRSMEbrood.R') # Brood Collection Summary
 
@@ -49,15 +49,6 @@ HJ_brood_goal <- "6" # hatchery-origin jacks #always 6
 # Sliding Scale Goals
 SS_upstream <- "50%" # % hatchery passed upstream
 SS_brood <- "30%"  # % natural kept for brood
-```
-
-```{r cdms-login, eval = TRUE, message = FALSE, include=FALSE}
- # cdms_host <- 'https://npt-cdms.nezperce.org'# REMOVE?
- # api_key = 'api_user'# why are you using this to set a value for just below?
- # cdmsR::cdmsLogin('api_user', api_key, cdms_host = cdms_host)# Generic Login 
-
- cdmsR::cdmsLogin('api_user', 'api_user')
- 
 ```
 
 ```{r Get Data, include = FALSE}
