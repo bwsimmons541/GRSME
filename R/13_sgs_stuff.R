@@ -20,6 +20,7 @@ pHOS_carc <- car_dat %>%
   mutate(across(where(is.numeric), replace_na, 0)) %>%
   bind_cols(est_proportion(.$Hatchery, .$Hatchery + .$Natural, method = 'score')) %>%
   rename(pHOS = p, pHOS_SE = SE, pHOS_lwr = lwr, pHOS_upr = upr) %>%
+  mutate(n_pHOS = Hatchery + Natural) %>% #added row for n_pHOS
   select(-c(Hatchery,Natural,pHOS_SE))
 
 
@@ -32,6 +33,7 @@ pFemale_carc <- car_dat %>%
   mutate(across(where(is.numeric), replace_na, 0)) %>%
   bind_cols(est_proportion(.$Female, .$Female + .$Male, method = 'score')) %>%
   rename(pFemale = p, pFemale_SE = SE, pFemale_lwr = lwr, pFemale_upr = upr) %>%
+  mutate(n_pFemale = Female + Male) %>% #added row for n_pFemale
   select(-c(Female,Male,pFemale_SE))
 
 
@@ -45,6 +47,7 @@ psm <- car_dat %>%
   mutate(across(where(is.numeric), replace_na, 0)) %>%
   bind_cols(est_proportion(.$No, .$No + .$Yes, method = 'score')) %>%
   rename(psm = p, psm_SE = SE, psm_lwr = lwr, psm_upr = upr) %>%
+  mutate(n_psm = Yes + No) %>% #added row for n_psm
   select(-c(Yes,No,psm_SE))
 
 # table 5 - pulling the pieces together  --------------------------------------
@@ -54,4 +57,4 @@ sgs_stuff <- full_join(redds_total,pHOS_carc) %>%
     POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
     TRUE ~ POP_NAME))
 
-writexl::write_xlsx(T5_sgs_stuff, path = './data/outputs/sgs_stuff.xlsx')
+# writexl::write_xlsx(T5_sgs_stuff, path = './data/outputs/sgs_stuff.xlsx')

@@ -127,7 +127,10 @@ bs_returned <- tribble(
   2020, 'Lostine River', 'A', 2,
   2020, 'Lostine River', 'A_Nat', 2,
   2021, 'Lostine River', 'A', 2,
-  2021, 'Lostine River', 'A_Hat', 2)
+  2021, 'Lostine River', 'A_Hat', 2,
+  2023, 'Lostine River', 'A', 10,
+  2023, 'Lostine River', 'A_Hat', 10)
+
   # No broodstock returned in 2022
 
 # Add Broodstock Return Data to N1 ====
@@ -406,7 +409,77 @@ trib_esc <- left_join(esc_aboveweir,MR_preferred, by = c('SurveyYear','strata'))
 
 rm(esc_aboveweir, MR_preferred, N_D, trib_harvest)
 
-# fix inconsistent joining of with/without stream in data set, and upr/lwr naming
+# Sum A + J -------------
+tmp <- trib_esc %>%
+  filter(strata %in% c('A', 'J')) %>%
+  group_by(trap_year) %>%
+  summarize(across(where(is.numeric), sum)) %>%
+  mutate(
+    stream = "Lostine River",
+    strata = "A + J",
+    MR_method = "2 - size/origin strata & 3 - size strata * carcass origin",
+    MR_preferred = "2 - size/origin strata & 3 - size strata * carcass origin"
+  ) 
+
+# Add new strata to table ---------
+trib_esc <- trib_esc %>%
+  bind_rows(tmp) %>%
+  arrange(trap_year)
+
+# Create ATT table ---------
+trib_esc_att <- tmp %>%
+select(
+  stream,
+  trap_year,
+  N_U,
+  N_U_lwr,
+  N_U_upr,
+  N_D,
+  N_D_lwr,
+  N_D_upr,
+  weir_removals,
+  harvest,
+  trib_esc,
+  trib_esc_lwr,
+  trib_esc_upr
+)
+  
+rm(tmp)
+
+# fix inconsistent joining of with/without stream in data set, and upr/lwr naming ---------
 
 writexl::write_xlsx(trib_esc, path = './data/outputs/trib_esc.xlsx')
+
+# glimpse(trib_esc)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

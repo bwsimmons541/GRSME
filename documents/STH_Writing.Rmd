@@ -1,0 +1,630 @@
+---
+title: "Analysis and manipulation of Data for the Summer Steelhead Seciton of the NPT Adult Report"
+author: "Brian Simmons"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    css: ../www/style.css
+    theme: readable
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    includes:
+      in_header: npt_joseph.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, warnings = FALSE, ft.shadow = FALSE)
+
+```
+
+
+
+```{r load packages, include=FALSE}
+librarian::shelf(flextable,
+                 officer,
+                 scales,
+                 ryankinzer/cuyem,
+                 viridis,
+                 tidyverse)
+```
+
+
+```{r set time, include=FALSE}
+
+yr = 2022 #spawn year & survey year
+yr_range = (yr-9):yr
+by_chs = yr - 5 #auto calculate and fill for brood year
+by_range = (by_chs-9):by_chs
+by_rps = yr - 3 #auto calculate and fill for recruits-per-spawner table
+rps_range = (by_rps-9):by_rps
+
+```
+
+
+```{r data}
+#IPTDS Data ----
+
+load('../data/ry22iptds051823.rda')
+pop_esc <- dabom_esc %>% filter(variable == 'Population Escapement')
+iptds_age <- dabom_esc %>% filter(variable == 'Age Proportion')
+stadem_dat <- iptds_prod
+rm(iptds_prod)
+
+  # add abundance thresholds to pop_esc
+  
+  pop_thresholds <- readxl::read_xlsx(path = '../data/inputs/pop_esc_thresholds.xlsx')
+  
+  pop_esc <- pop_esc %>%
+    left_join(pop_thresholds, by = c('Name' = 'Name', 'species' = 'species', 'run' = 'run'))
+
+# Load Carcass Data ----
+load('../data/car_dat.rda')
+
+# Weir/Trapping Data ----
+
+# Load weir data and spawning data from CDMS ----
+
+# trap_df <- get_WeirData()
+# save('trap_df', file = './data/trap_df.rda') #load if you need more years.
+
+# trap_dat <- clean_weirData(trap_df) %>%
+#   filter(grepl('NPT', facility)) %>%
+#   filter(trap_year %in% yr_range)
+
+# save('trap_dat', file = './data/trap_dat.rda')
+
+
+# Load weir data from .rda ----
+load('../data/trap_dat.rda')
+
+load('../data/redd_dat.rda')
+
+```
+
+```{r get_Steelhead_data, message=FALSE, include=FALSE}
+
+    # STH_sgs_df <- readxl::read_excel('../data/inputs/STH_t12_sgs.xlsx')
+    # glimpse(STH_sgs_df)
+    # save(STH_sgs_df, file = '../data/STH_sgs_df.rda')
+    # rm(STH_sgs_df)
+    load('../data/STH_sgs_df.rda')
+
+    # STH_esc_disp_df <- readxl::read_excel('../data/inputs/STH_t9t11_disp_trib_esc.xlsx') %>%
+    # mutate(across(.cols = c('trap_year','Ponded':'pFemale_weir_upr'), .fns = as.double))
+    # glimpse(STH_esc_disp_df)
+    # save(STH_esc_disp_df, file = '../data/STH_esc_disp_df.rda')
+    # rm(STH_esc_disp_df)
+    load('../data/STH_esc_disp_df.rda')
+
+  
+    load('../data/All_steelhead_lifehistory.rda')
+    #rename to match old code
+    steelhead_age <- all_lifehistory
+    rm(all_lifehistory)
+
+```
+
+```{r fig & table defaults, include=FALSE}
+# hack code to get the font recognized
+windowsFonts("Arial" = windowsFont("Arial"))
+
+#set figure theme
+theme_set(theme_bw() +
+          theme(panel.grid  = element_blank(),
+                panel.background = element_blank(),
+                legend.position = 'bottom',
+                text = element_text(family = 'Arial'))
+          )
+
+#set flextable defaults
+set_flextable_defaults(font.family = 'Arial',
+                       font.size = 11)
+```
+
+```{r functions, include = FALSE}
+
+source('../R/gm_mean.R')
+
+```
+
+# Abstract
+
+\
+
+**The first table includes CHS and STH**
+* gm = geometric mean
+* DIFF = difference from one year to next
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), .fns = as.double)) %>%
+    filter(origin == "Total",
+           spawn_year %in% yr_range) %>%
+    group_by(species,
+             run) %>%
+    mutate(gm = gm_mean(estimate),
+           DIFF = estimate - lag(estimate),
+           across(.cols = c('estimate':'DIFF'), round, 0)) %>%
+    arrange(desc(species),
+            desc(spawn_year)) %>%
+    flextable() %>%
+    set_caption(
+      caption = "10 year change and median abundance of Combined CHS at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+# Abundance
+
+\
+
+## Lower Granite Escapement
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), .fns = as.double)) %>%
+    filter(origin == "Total",
+           species == 'Steelhead',
+           spawn_year %in% yr_range) %>%
+    mutate(gm = gm_mean(estimate),
+           DIFF = estimate - lag(estimate),
+           across(.cols = c('estimate':'DIFF'), round, 0)) %>%
+    arrange(desc(spawn_year)) %>%
+    flextable() %>%
+    set_caption(
+      caption = "10 year change and average abundance of Combined CHS at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), as.double),
+           across(.cols = c('estimate':'sd'), round, 0 )) %>%
+    filter(spawn_year %in% yr_range) %>%
+  group_by(species,
+           origin) %>%
+  mutate(gm = gm_mean(estimate),
+         DIFF = estimate - lag(estimate)) %>%
+  ungroup() %>%
+  filter(spawn_year %in% (yr-1):yr,
+           species == "Steelhead") %>%
+  arrange(origin,
+          desc(spawn_year)) %>%
+    flextable() %>%
+    set_caption(
+      caption = "Abundance by origin at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r figure25-sth-esc-lgd, eval = TRUE, fig.cap = ' Escapement of unique summer steelhead passing Lower Granite Dam estimated by STADEM for spawn years 2013-2022 (grey bands represent 95% confidence intervals, and the dashed line is the 10-year geometric mean).'}
+
+      stadem_dat %>%
+        mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+        mutate(origin = as.character(origin),
+              origin = case_when(
+                 origin == 'Hatchery No-Clipped' ~ 'Hatchery Unclipped',
+                 TRUE ~ origin
+               )) %>%
+        filter(species == 'Steelhead',
+               spawn_year %in% yr_range) %>%
+        group_by(species, origin) %>%
+        mutate(gm = gm_mean(estimate)) %>%
+        filter(spawn_year %in% yr_range) %>%
+      ggplot(aes(x = as.integer(spawn_year), y = estimate, group = origin)) +
+        geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25) +
+        geom_pointrange(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25, size = 0) +
+        geom_line() +
+        geom_point(size = 2) +
+        geom_hline(aes(yintercept = gm), linetype = 2) +
+        scale_x_continuous(breaks = breaks_pretty()) +
+        facet_wrap(~ origin, scales = "free_y") +
+        scale_y_continuous(labels = comma, breaks = breaks_pretty()) +
+        labs(x = 'Spawn Year',
+             y = 'Lower Granite Escapement',
+             colour = 'Species') +
+        theme(legend.position = 'bottom')
+
+```
+
+\
+
+## ICTRT population escapement
+
+\
+
+```{r figure26-sth-esc-dabom, eval = TRUE, fig.cap = 'Escapement of natural-origin summer steelhead into ICTRT populations estimated by STADEM and DABOM models (grey bands represent 95% confidence intervals; dashed lines are the 10-year geometric mean of available estimates; the solid red line represents the ICTRT minimum abundance threshold (MAT)).', fig.height=9}
+
+      pop_esc %>%
+        mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+        filter(species == 'Steelhead',
+               spawn_year %in% yr_range) %>%
+        filter(valid_estimate == 1) %>%
+        complete(spawn_year, nesting(TRT_POPID, Name)) %>%
+        group_by(TRT_POPID) %>%
+        mutate(gm = gm_mean(estimate)) %>%
+        filter(spawn_year %in% yr_range) %>%
+      ggplot(aes(x = spawn_year, y = estimate, group = TRT_POPID)) +
+        geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25) +
+        geom_pointrange(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25, size = 0) +
+        geom_line() +
+        geom_point(size = 2) +
+        geom_hline(aes(yintercept = gm), linetype = 2) +
+        geom_hline(aes(yintercept = mat), color = 'red', size = 1) +
+        scale_y_continuous(labels = comma, breaks = breaks_pretty(n = 3)) +
+        scale_x_continuous(breaks = breaks_pretty(n = 4)) +
+        facet_wrap(~ Name, ncol = 3, scales = 'free_y', labeller = label_wrap_gen(width = 30)) +
+        labs(x = 'Spawn Year',
+             y = 'Population Escapement',
+             colour = 'Major Population Group') +
+        theme(legend.position = 'bottom')
+
+```
+
+\
+
+* gm = geometric mean
+* DIFF = Difference from previous estimate
+* mat = ICTRT Minimum Abunadance Threshold
+* seo = NPT Stustainable Escapment Objective
+* eeo = NPT Ecological Escapement Objective
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Steelhead',
+         spawn_year %in% yr_range,
+         valid_estimate == '1') %>%
+  group_by(Name) %>%
+  mutate(gm = gm_mean(estimate),
+         DIFF = estimate - lag(estimate),
+         Name = case_when(
+         Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+         TRUE ~ Name)) %>%
+  # ungroup() %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm, DIFF, mat, seo, eeo) %>%
+  # distinct() %>%
+  arrange(Name,
+          spawn_year) %>%
+  filter(spawn_year == 2022,
+         DIFF != 0) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:eeo, round, 0)) %>%
+  arrange(Name) %>%
+  flextable()  %>%
+    set_caption(
+      caption = "DABOM Population abundance estimate, change from previous year, geometric mean, and relavent abundance thresholds",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Steelhead',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate > gm) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid population > 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Steelhead',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate >= gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  arrange(Name) %>%
+  flextable() %>%
+    set_caption(
+      caption = "populations >= 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Steelhead',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate < gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid population < 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Steelhead',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate < gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  arrange(Name) %>%
+  flextable() %>%
+    set_caption(
+      caption = "populations < 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+```
+
+\
+
+## Tributary Escapement
+
+\
+
+```{r figure27-sth-esc-weir, eval = TRUE, fig.cap = 'Total summer steelhead escapement to DFRM operated weirs with grey bands representing 95% confidence intervals and dashed lines representing the 10-year geometric mean of available data.'}
+
+# ONLY 2 FISH CAPTURED IN THE LOSTINE RIVER IN 2022
+      
+    STH_esc_disp_df %>%
+        mutate(N_trib = case_when(
+          is.na(N_trib) ~ N_U, # This is for cases when only upstream escapement is estimated
+          TRUE ~ N_trib)) %>%
+        mutate(N_trib_lwr = case_when(
+          is.na(N_trib_lwr) ~ N_U_lwr,
+          TRUE ~ N_trib_lwr)) %>%
+        mutate(N_trib_upr = case_when(
+          is.na(N_trib_upr) ~ N_U_upr,
+          TRUE ~ N_trib_upr)) %>%
+        mutate(N_trib_lwr = case_when(
+          (N_trib_lwr == 16 & stream_name == 'Jacks Creek Weir') ~ 10, #hack solultion for figure
+          TRUE ~ N_trib_lwr
+        )) %>%
+        mutate(N_trib_upr = case_when(
+          (N_trib_upr == 16 & stream_name == 'Jacks Creek Weir') ~ 20,
+          TRUE ~ N_trib_upr
+        )) %>%
+        filter(!is.na(N_trib),
+               trap_year %in% yr_range) %>%
+        mutate(N_trib == round(N_trib, 0)) %>%
+        group_by(stream_name) %>%
+        mutate(mu = mean(N_trib, na.rm = TRUE),
+               mdn = median(N_trib, na.rm =TRUE),
+               gm =  gm_mean(N_trib)) %>%
+        ungroup() %>%
+      ggplot(aes(x = trap_year, y = N_trib, group = stream_name)) +
+        geom_ribbon(aes(ymin = N_trib_lwr, ymax =  N_trib_upr), alpha = .3) +
+        geom_pointrange(aes(ymin = N_trib_lwr, ymax =  N_trib_upr), alpha = .3, size = 0) +
+        geom_line() +
+        geom_point() +
+        geom_hline(aes(yintercept = gm), linetype = 2) +
+        scale_y_continuous(breaks = breaks_extended(), labels = label_number(accuracy = 1)) +
+        scale_x_continuous(breaks = breaks_pretty()) +
+        scale_colour_viridis_d(begin = .25) +
+        facet_wrap(~stream_name, scales = 'free_y', ncol = 3) +
+        theme(legend.position = 'bottom') +
+        labs(x = 'Spawn Year',
+             y = 'Total Escapement',
+             colour = 'Steelhead Streams')
+
+
+```
+
+\
+
+```{r}
+
+# ONLY 2 FISH CAPTURED IN THE LOSTINE RIVER IN 2022
+      
+    STH_esc_disp_df %>%
+        mutate(N_trib = case_when(
+          is.na(N_trib) ~ N_U, # This is for cases when only upstream escapement is estimated
+          TRUE ~ N_trib)) %>%
+        mutate(N_trib_lwr = case_when(
+          is.na(N_trib_lwr) ~ N_U_lwr,
+          TRUE ~ N_trib_lwr)) %>%
+        mutate(N_trib_upr = case_when(
+          is.na(N_trib_upr) ~ N_U_upr,
+          TRUE ~ N_trib_upr)) %>%
+        mutate(N_trib_lwr = case_when(
+          (N_trib_lwr == 16 & stream_name == 'Jacks Creek Weir') ~ 10, #hack solultion for figure
+          TRUE ~ N_trib_lwr
+        )) %>%
+        mutate(N_trib_upr = case_when(
+          (N_trib_upr == 16 & stream_name == 'Jacks Creek Weir') ~ 20,
+          TRUE ~ N_trib_upr
+        )) %>%
+        filter(!is.na(N_trib),
+               trap_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+        mutate(gm =  gm_mean(N_trib),
+               across(Ponded:gm, round, 0)) %>%
+        ungroup() %>%
+  select(trap_year, stream_name, N_trib:N_trib_upr, gm) %>%
+  filter(trap_year == yr) %>%
+  mutate(trap_year = as.character(trap_year)) %>%
+  flextable() %>%
+    set_caption(
+      caption = paste0("STH Tributary escapment ",yr," and 10-year geometric mean"),
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+
+```
+
+\
+
+## Index of abundance Redd Counts
+
+\
+
+```{r figure34-sth-redds-trib, eval = TRUE, fig.cap = 'Total summer steelhead redds counted in the ICTRT Imanha River major population group during spawning ground surveys from 2013 to 2022 (The dashed line represents the 10-year geometric mean of available data).'}
+      
+      # redd_dat %>%
+      #   filter(Species == 'Steelhead', Run == 'Summer') %>%
+      #   sum_Redds(MPG, POP_NAME, TRT_POPID, StreamName, SurveyYear) %>%
+      #   ungroup() %>%
+      #   filter(MPG == 'Imnaha River') %>%
+      #   complete(SurveyYear, nesting(MPG, POP_NAME, TRT_POPID, StreamName)) %>%
+      #  
+        
+      STH_sgs_df %>%
+        filter(survey_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+        mutate(gm = gm_mean(total_redds)) %>%
+        ungroup() %>%
+      ggplot(aes(x = survey_year, y = total_redds, group = stream_name)) +
+        geom_line() +
+        geom_point(size = 2) +
+        geom_hline(aes(yintercept = gm), linetype = 2) +
+        scale_colour_viridis_d() +
+        scale_x_continuous(breaks = c(2015,2018,2021), limits = c(2013,2022)) +
+        scale_y_continuous(labels = comma, breaks = breaks_pretty(n = 3)) +
+        #(expand = c(0,10)) +
+        facet_wrap(~ stream_name, ncol = 3, labeller = label_wrap_gen(width = 20), scales = 'free_y') +
+        theme(legend.position = 'bottom') +
+        labs(x = 'Spawn Year',
+             y = 'Total Redds',
+             colour = 'StreamName')
+      
+```
+
+\
+
+```{r }
+      
+      STH_sgs_df %>%
+        filter(survey_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+        mutate(gm = gm_mean(total_redds)) %>%
+        ungroup() %>%
+        filter(survey_year == yr) %>%
+        mutate(survey_year = as.character(survey_year)) %>%
+        flextable() %>%
+    set_caption(
+      caption = paste0("STH Redd Counts ",yr," and 10-year geometric mean"),
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

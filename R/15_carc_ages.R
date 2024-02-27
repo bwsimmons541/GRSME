@@ -28,15 +28,17 @@ pAge_carc <- car_dat_tmp %>%
          tots = Age_3 + Age_4 + Age_5) %>%
   bind_cols(est_proportion(.$Age_3,.$tots, method = 'score')) %>%
   rename(pAge_3 = p, pAge_3_SE = SE, pAge_3_lwr = lwr, pAge_3_upr = upr) %>%
-  select(-c(Age_3,pAge_3_SE)) %>%
+  select(-c(Age_2,Age_3,pAge_3_SE)) %>%
   bind_cols(est_proportion(.$Age_4,.$tots, method = 'score')) %>%
   rename(pAge_4 = p, pAge_4_SE = SE, pAge_4_lwr = lwr, pAge_4_upr = upr) %>%
   select(-c(Age_4,pAge_4_SE)) %>%
   bind_cols(est_proportion(.$Age_5,.$tots, method = 'score')) %>%
-  rename(pAge_5 = p, pAge_5_SE = SE, pAge_5_lwr = lwr, pAge_5_upr = upr) %>%
-  select(-c(Age_5,pAge_5_SE,tots)) %>%
+  rename(pAge_5 = p, pAge_5_SE = SE, pAge_5_lwr = lwr, pAge_5_upr = upr, n_age = tots) %>%
+  select(-c(Age_5,pAge_5_SE)) %>%
   mutate(POP_NAME=case_when(POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
-                            TRUE ~ POP_NAME))
+                            TRUE ~ POP_NAME)) %>%
+  relocate(n_age, .after = last_col())
+
 rm(car_dat_tmp)
 # could use apply() approach...
 # also saw that there is an est_proportions function after doing this...
@@ -46,4 +48,4 @@ rm(car_dat_tmp)
 # also a good qa-qc check to at least review those numbers
 # or just do the qa-qc here
 
-writexl::write_xlsx(pAge_carc, path = './data/outputs/T7_carc_ages.xlsx')
+# writexl::write_xlsx(pAge_carc, path = './data/outputs/T7_carc_ages.xlsx')

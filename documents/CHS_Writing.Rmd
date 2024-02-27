@@ -1,0 +1,2222 @@
+---
+title: "Analysis and manipulation of Data for the Spring Summer Chinook Seciton of the NPT Adult Report"
+author: "Brian Simmons"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    css: ../www/style.css
+    theme: readable
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: true
+      smooth_scroll: false
+    includes:
+      in_header: npt_joseph.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, warnings = FALSE, ft.shadow = FALSE)
+
+```
+
+
+
+```{r load packages, include=FALSE}
+librarian::shelf(flextable,
+                 officer,
+                 scales,
+                 ryankinzer/cuyem,
+                 viridis,
+                 tidyverse)
+```
+
+
+```{r data, include=FALSE}
+# Load Data ----
+
+# CHS_esc_weir_df <- readxl::read_excel('./data/inputs/CHS_t3t6_trib_esc_weir_proportions.xlsx')
+# save(CHS_esc_weir_df, file = './data/CHS_esc_weir_df.rda')
+# rm(CHS_esc_weir_df)
+load('../data/CHS_esc_weir_df.rda')
+
+
+# CHS_final_disp_df <- readxl::read_excel('./data/inputs/CHS_t4_final_disp.xlsx')
+# save(CHS_final_disp_df, file = './data/CHS_final_disp_df.rda')
+# rm(CHS_final_disp_df)
+load('../data/CHS_final_disp_df.rda')
+
+
+# CHS_sgs_age_df <- readxl::read_excel('../data/inputs/CHS_t5t7_sgs_measures_carc_ages.xlsx') %>%
+# mutate(across(.cols = c('survey_year','total_redds':'pAge_5_upr'), .fns =  as.double))
+# glimpse(CHS_sgs_age_df)
+# save(CHS_sgs_age_df, file = '../data/CHS_sgs_age_df.rda')
+# rm(CHS_sgs_age_df)
+load('../data/CHS_sgs_age_df.rda')
+
+# CHS_productivity_df <- readxl::read_excel('./data/inputs/CHS_productivity.xlsx')
+# glimpse(CHS_productivity_df)
+# save(CHS_productivity_df, file = './data/CHS_productivity_df.rda')
+# rm(CHS_productivity_df)
+load('../data/CHS_productivity_df.rda')
+
+#IPTDS Data ----
+
+load('../data/ry22iptds051823.rda')
+pop_esc <- dabom_esc %>% filter(variable == 'Population Escapement')
+iptds_age <- dabom_esc %>% filter(variable == 'Age Proportion')
+stadem_dat <- iptds_prod
+rm(iptds_prod)
+
+  # add abundance thresholds to pop_esc
+  
+  pop_thresholds <- readxl::read_xlsx(path = '../data/inputs/pop_esc_thresholds.xlsx')
+  
+  pop_esc <- pop_esc %>%
+    left_join(pop_thresholds, by = c('Name' = 'Name', 'species' = 'species', 'run' = 'run'))
+
+# Load Carcass Data ----
+load('../data/car_dat.rda')
+
+# Weir/Trapping Data ----
+
+# Load weir data and spawning data from CDMS ----
+
+# trap_df <- get_WeirData()
+# save('trap_df', file = './data/trap_df.rda') #load if you need more years.
+
+# trap_dat <- clean_weirData(trap_df) %>%
+#   filter(grepl('NPT', facility)) %>%
+#   filter(trap_year %in% yr_range)
+
+# save('trap_dat', file = './data/trap_dat.rda')
+
+
+# Load weir data from .rda ----
+load('../data/trap_dat.rda')
+
+load('../data/redd_dat.rda')
+
+```
+
+```{r set time, include=FALSE}
+
+yr = 2022 #spawn year & survey year
+yr_range = (yr-9):yr
+by_chs = yr - 5 #auto calculate and fill for brood year
+by_range = (by_chs-9):by_chs
+by_rps = yr - 3 #auto calculate and fill for recruits-per-spawner table
+rps_range = (by_rps-9):by_rps
+
+```
+
+```{r fig & table defaults, include=FALSE}
+# hack code to get the font recognized
+windowsFonts("Arial" = windowsFont("Arial"))
+
+#set figure theme
+theme_set(theme_bw() +
+          theme(panel.grid  = element_blank(),
+                panel.background = element_blank(),
+                legend.position = 'bottom',
+                text = element_text(family = 'Arial'))
+          )
+
+#set flextable defaults
+set_flextable_defaults(font.family = 'Arial',
+                       font.size = 11)
+```
+
+```{r functions, include = FALSE}
+
+source('../R/gm_mean.R')
+
+```
+
+# Abstract
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), .fns = as.double)) %>%
+    filter(origin == "Total",
+           spawn_year %in% yr_range) %>%
+    group_by(species,
+             run) %>%
+    mutate(mu = mean(estimate, na.rm = TRUE),
+           mdn = median(estimate, na.rm = TRUE),
+           DIFF = estimate - lag(estimate),
+           across(.cols = c('estimate':'DIFF'), round, 0)) %>%
+    flextable() %>%
+    set_caption(
+      caption = "10 year change and median abundance of Combined CHS at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+# Methods
+\
+
+```{r}
+## Methods
+
+#### Dates of Chinook Capture.
+
+tmp <- trap_dat %>%
+   filter(trap == "Lostine River Weir",
+          species == "Chinook",
+          trap_year == yr)
+
+# First Chinook Trapped Lostine
+min(tmp$trapped_date)
+
+#Last Chinook Trapped Lostine
+max(tmp$trapped_date)
+
+```
+
+
+
+# Abundance
+
+\
+
+## Lower Granite Escapement
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), .fns = as.double)) %>%
+    filter(origin == "Total",
+           species == 'Chinook Salmon',
+           spawn_year %in% yr_range) %>%
+    mutate(gm = gm_mean(estimate),
+           DIFF = estimate - lag(estimate),
+           across(.cols = c('estimate':'DIFF'), round, 0)) %>%
+    arrange(desc(spawn_year)) %>%
+    flextable() %>%
+    set_caption(
+      caption = "10 year change and average abundance of Combined CHS at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+  stadem_dat %>%
+    mutate(across(.cols = c('estimate':'sd'), as.double),
+           across(.cols = c('estimate':'sd'), round, 0 )) %>%
+    filter(spawn_year %in% yr_range) %>%
+  group_by(species,
+           origin) %>%
+  mutate(gm = gm_mean(estimate)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr,
+           species == "Chinook Salmon") %>%
+    flextable() %>%
+    set_caption(
+      caption = "Abundance by origin at Granite",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r figure8-chs-esc-lgd-iptds, eval = TRUE, fig.cap = 'Spring/summer Chinook Salmon escapement past Lower Granite Dam (IPTDSW 2023; grey bands represent 95% CI; dashed line represents the 10-year median). No data is available for spawn year 2020 returns.'}
+
+  stadem_dat %>%
+    mutate(across(c(estimate, lower_ci, upper_ci), as.numeric)) %>%
+    filter(species == 'Chinook Salmon',
+           spawn_year %in% yr_range) %>%
+    group_by(origin) %>%
+    mutate(mu = mean(estimate, na.rm = TRUE),
+           mdn = median(estimate, na.rm = TRUE),
+           origin = as.character(origin),
+           origin = case_when(
+          origin == 'Hatchery No-Clipped' ~ 'Hatchery Unclipped',
+             TRUE ~ origin
+          )) %>%
+  ggplot(aes(x = as.integer(spawn_year), y = estimate, group = origin)) +
+    geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25) +
+    geom_line() +
+    geom_point(size = 2) +
+    geom_hline(aes(yintercept = mdn), linetype = 2) +
+    #geom_errorbar(aes(ymin = lowerCI, ymax = upperCI)) +
+    #scale_x_continuous(labels = breaks_pretty()) +
+    scale_colour_viridis_d(direction = -1, option = 'D', begin = .25, end = .75) +
+    scale_x_continuous(breaks = breaks_pretty()) +
+    #scale_x_discrete(labels = function(x) str_wrap(levels(stadem_dat$origin), width = 10)) +
+    facet_wrap(~ origin, scales = 'free_y') +
+    scale_y_continuous(labels = comma, breaks = breaks_pretty()) +
+    # scale_y_continuous(breaks = breaks_pretty(n = 3)) +
+    labs(x = 'Spawn Year',
+         y = 'Lower Granite Escapement',
+         colour = 'Species') +
+    theme(legend.position = 'bottom')
+
+```
+
+\
+
+## ICTRT population escapement
+
+\
+
+```{r figure9-chs-esc-iptds, eval = TRUE, fig.cap = 'Natural-origin spring/summer Chinook Salmon escapement into several ICTRT populations (IPTDSW 2023; grey bands represent 95% CI; dashed line represents the 10-year geometric mean of available estimates; the solid red line represents the ICTRT minimum abundance threshold (MAT)).', fig.height=9}
+
+# A Linear regression does not have a good fit for these dataest and would not be a good predictor.
+
+      pop_esc %>%
+        mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+        filter(species == 'Chinook salmon',
+               spawn_year %in% yr_range) %>%
+        filter(valid_estimate == '1') %>%
+        group_by(TRT_POPID) %>%
+        mutate(mu = mean(estimate, na.rm = TRUE),
+               mdn =  median(estimate, na.rm = TRUE),
+               gm = gm_mean(estimate),
+               Name = case_when(
+                 Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+                 TRUE ~ Name
+          )) %>%
+      ggplot(aes(x = spawn_year, y = estimate, group = Name)) + 
+        geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25) +
+        geom_pointrange(aes(ymin = lower_ci, ymax = upper_ci), alpha = .25, size = 0) +
+        geom_line() +
+        geom_hline(aes(yintercept = gm), linetype = 2) +
+        geom_hline(aes(yintercept = mat), color = 'red', size = 1) +
+        geom_point(size = 2) +
+        scale_x_continuous(breaks = c(2015,2018,2021), limits = c(2013,2022)) +
+        #scale_colour_viridis_d(direction = -1, option = 'D', begin = .1, end = 1) +
+        facet_wrap(~ Name, scales = 'free_y', ncol = 4, labeller = label_wrap_gen(width = 19)) + # you don't need to specify width
+        scale_y_continuous(breaks = breaks_pretty(n = 3)) +
+        labs(x = 'Spawn Year',
+             y = 'Population Escapement',
+             colour = 'Major Population Group') +
+        theme(legend.position = 'bottom')
+
+
+
+```
+
+\
+
+* gm = geometric mean
+* DIFF = Difference from previous estimate
+* mat = ICTRT Minimum Abunadance Threshold
+* seo = NPT Stustainable Escapment Objective
+* eeo = NPT Ecological Escapement Objective
+
+\
+
+```{r}
+glimpse(pop_esc)
+
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range,
+         valid_estimate == '1') %>%
+  group_by(Name) %>%
+  mutate(gm = gm_mean(estimate),
+         DIFF = estimate - lag(estimate),
+         Name = case_when(
+         Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+         TRUE ~ Name)) %>%
+  # ungroup() %>%
+  select(Name, spawn_year, estimate,lower_ci, upper_ci, gm, DIFF, mat, seo, eeo) %>%
+  # distinct() %>%
+  arrange(Name,
+          spawn_year) %>%
+  filter(spawn_year == 2022,
+         DIFF != 0) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:eeo, round, 0)) %>%
+  arrange(Name) %>%
+  flextable()  %>%
+    set_caption(
+      caption = "DABOM Population abundance estimate, change from previous year, geometric mean, and relavent abundance thresholds",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% (yr-1):yr) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(mu = mean(estimate, na.rm = TRUE),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  select(Name, spawn_year, estimate) %>%
+  distinct() %>% 
+  group_by(Name) %>%
+  mutate(DIFF = estimate - lag(estimate),
+         spawn_year = as.character(spawn_year)) %>%
+  ungroup() %>%
+  arrange(Name,
+          spawn_year) %>%
+  filter(spawn_year == 2022) %>%
+  count() %>%
+  flextable()   %>%
+    set_caption(
+      caption = "count of populations",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+# count populations increasing
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% (yr-1):yr) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(mu = mean(estimate, na.rm = TRUE),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  select(Name, spawn_year, estimate) %>%
+  distinct() %>% 
+  group_by(Name) %>%
+  mutate(DIFF = estimate - lag(estimate),
+         spawn_year = as.character(spawn_year)) %>%
+  ungroup() %>%
+  arrange(Name,
+          spawn_year) %>%
+  filter(spawn_year == 2022,
+         DIFF > 0) %>%
+  count() %>%
+  flextable()   %>%
+    set_caption(
+      caption = "count of populations with increasing escapement",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+ pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% (yr-1):yr) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(mu = mean(estimate, na.rm = TRUE),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  select(Name, spawn_year, estimate) %>%
+  distinct() %>% 
+  group_by(Name) %>%
+  mutate(DIFF = estimate - lag(estimate),
+         spawn_year = as.character(spawn_year)) %>%
+  ungroup() %>%
+  arrange(Name,
+          spawn_year) %>%
+  filter(spawn_year == 2022,
+         DIFF < 0) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of populations with decreasing escapement",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(mu = mean(estimate, na.rm = TRUE),
+         mdn = median(estimate, na.rm = TRUE),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, mu) %>%
+  distinct() %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid DABOM population estimates for current year",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate > gm) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid population > 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate >= gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  arrange(Name) %>%
+  flextable() %>%
+    set_caption(
+      caption = "populations >= 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate == gm) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid population equal to 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate < gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of valid population < 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+```
+
+\
+
+```{r}
+pop_esc %>%
+  mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+  filter(species == 'Chinook salmon',
+         spawn_year %in% yr_range) %>%
+  filter(valid_estimate == '1') %>%
+  group_by(TRT_POPID) %>%
+  mutate(gm = gm_mean(estimate),
+         Name = case_when(
+           Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+           TRUE ~ Name)) %>%
+  ungroup() %>%
+  filter(spawn_year == yr) %>%
+  select(Name, spawn_year, estimate, lower_ci, upper_ci, gm) %>%
+  distinct() %>%
+  filter(estimate < gm) %>%
+  mutate(spawn_year = as.character(spawn_year),
+         across(estimate:gm, round, 0)) %>%
+  arrange(Name) %>%
+  flextable() %>%
+    set_caption(
+      caption = "populations < 10-year geometric mean",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+
+```
+
+\
+
+## Tributary Escapement
+
+```{r figure10-chs-esc-trib, eval = TRUE, fig.cap = 'Total spring/summer Chinook Salmon tributary escapement (grey bands represent 95% CI) to Johnson Creek and the Lostine River for the last 10-years (2013-2022); dashed line represents the 10-year median', fig.height=8}
+  
+    CHS_esc_weir_df %>%
+      filter(trap_year %in% yr_range) %>%
+      group_by(stream_name) %>%
+      mutate(mu = mean(N_trib, na.rm = TRUE),
+             mdn = median(N_trib, na.rm = TRUE)) %>%
+    ggplot(aes(x = trap_year, y = N_trib, group = stream_name)) +
+      geom_ribbon(aes(ymin = N_trib_lwr, ymax = N_trib_upr), alpha = .3) +
+      geom_pointrange(aes(ymin = N_trib_lwr, ymax = N_trib_upr), alpha = .3, size = 0) +
+      geom_line() +
+      geom_point() +
+      geom_hline(aes(yintercept = mdn), linetype = 2) +
+      scale_colour_viridis_d(begin = .25) +
+      scale_x_continuous(breaks = breaks_pretty()) +
+      facet_wrap(~stream_name, scales = 'free_y', ncol = 1) +
+      scale_y_continuous(labels = comma, breaks = breaks_pretty()) +
+      theme(legend.position = 'bottom') +
+      labs(x = 'Spawn Year',
+           y = 'Total Escapement',
+           colour = 'Chinook Streams')
+
+```
+
+\
+
+```{r}
+CHS_esc_weir_df %>%
+  filter(trap_year %in% yr_range) %>%
+  group_by(stream_name) %>%
+  mutate(trap_year = as.character(trap_year),
+         across(.cols = c('N_U':'N_trib_upr'), round, 0),
+         DIFF_trib = N_trib - lag(N_trib),
+         mu_trib = mean(N_trib),
+         mdn_trib = median(N_trib)) %>%
+  ungroup() %>%
+  select(stream_name, trap_year, N_U, N_D, weir_removal, trib_harvest, N_trib, DIFF_trib, mu_trib, mdn_trib) %>%
+  arrange(stream_name,
+          desc(trap_year)) %>%
+  flextable() %>%
+    set_caption(
+      caption = "Tributary escapement, difference from previous year, and summary stats",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs() %>%
+  align(j = 2:10, align = 'center', part = 'all') %>%
+  valign(valign = 'top', part = 'all') %>%
+  merge_v(j = 9:10, part = "body")
+  
+  
+```
+
+\
+
+# Final Disposition
+
+```{r}
+
+typology <- data.frame(
+  col_keys = c( "Natural_Female", "Natural_Male", "Hatchery_Female",
+                "Hatchery_Male", "stream_name", "disposition", 'Sub-total', 'total'),
+  what = c("Natural", "Natural", "Hatchery", "Hatchery", "Weir", "Disposition", 'Sub-total', 'Total Captured'),
+  measure = c("Female", "Male", "Female", "Male", "Weir", 'Disposition', 'Sub-total', 'Total Captured'),
+  stringsAsFactors = FALSE )
+
+
+CHS_final_disp_df %>%
+  filter(trap_year == yr) %>%
+  select(stream_name, disposition, Natural_Female, Natural_Male, Hatchery_Female, Hatchery_Male) %>%
+  bind_cols(`Sub-total` = apply(.[,3:6],1,sum, na.rm = TRUE)) %>%
+  group_by(stream_name) %>%
+  mutate(total = sum(`Sub-total`)) %>%
+  ungroup() %>%
+  flextable() %>%
+  set_header_df(mapping = typology, key = "col_keys" ) %>%
+  merge_h(part = "header") %>%
+  merge_v(j = c("stream_name","disposition", 'Sub-total', 'total'), part = "header") %>%
+  merge_v(j = "stream_name", part = "body") %>%
+  merge_v(j = 'total', part = "body") %>%
+  valign(valign = "top", part = 'all') %>%
+  colformat_num(na_str = '-') %>%
+  set_caption(
+    caption = paste0('Final disposition of spring/summer Chinook Salmon trapped and handled at Nez Perce Tribe operated weirs during spawn year ',yr,'.'),
+    style = "Table Caption") %>%
+  theme_booktabs() %>%
+  align(align = "center", j = c("Natural_Female", "Natural_Male", "Hatchery_Female", "Hatchery_Male", "Sub-total"), part = "all" ) %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+# Index of Abundance - Redd Counts
+
+\
+
+```{r}
+CHS_sgs_age_df %>%
+  select('survey_year':'total_redds') %>%
+  filter(survey_year %in% (yr -1):yr) %>%
+  group_by(survey_year,
+           MPG) %>%
+  mutate(MPG_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  group_by(survey_year) %>%
+  mutate(sy_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  rename(pop_redds = total_redds) %>%
+  group_by(POP_NAME) %>%
+  mutate(mdn = median(pop_redds, na.rm = TRUE),
+         DIFF = pop_redds - lag(pop_redds)) %>%
+  ungroup() %>%
+  arrange(MPG,
+          POP_NAME,
+          desc(survey_year)) %>%
+  mutate(survey_year = as.character(survey_year)) %>%
+  flextable() %>%
+    set_caption(
+      caption = "Redd counts for the past two years and the difference ",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs() %>%
+  align(j = 2:8, align = 'center', part = 'all') %>%
+  autofit()
+```
+
+\
+
+```{r}
+# CHS_sgs_age_df %>%
+  
+```
+
+
+\
+
+
+```{r}
+CHS_sgs_age_df %>%
+  select('survey_year':'total_redds') %>%
+  filter(survey_year %in% (yr -1):yr) %>%
+  group_by(survey_year,
+           MPG) %>%
+  mutate(MPG_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  group_by(survey_year) %>%
+  mutate(sy_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  rename(pop_redds = total_redds) %>%
+  group_by(POP_NAME) %>%
+  mutate(DIFF = pop_redds - lag(pop_redds)) %>%
+  ungroup() %>%
+  filter(DIFF > 0) %>%
+  mutate(DIFF = pop_redds - lag(pop_redds)) %>%
+  count() %>%
+  flextable() %>%
+    set_caption(
+      caption = "count of populations with increasing redd counts",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+CHS_sgs_age_df %>%
+  select('survey_year':'total_redds') %>%
+  filter(survey_year %in% (yr -1):yr) %>%
+  group_by(survey_year,
+           MPG) %>%
+  mutate(MPG_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  group_by(survey_year) %>%
+  mutate(sy_redds = sum(total_redds)) %>%
+  ungroup() %>%
+  rename(pop_redds = total_redds) %>%
+  group_by(POP_NAME) %>%
+  mutate(DIFF = pop_redds - lag(pop_redds)) %>%
+  ungroup() %>%
+  filter(DIFF < 0) %>%
+  mutate(survey_year = as.character(survey_year)) %>%
+  flextable() %>%
+    set_caption(
+      caption = "populations with decreasing redd counts",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+# total_difference 
+CHS_sgs_age_df %>%
+  select('survey_year':'total_redds') %>%
+  filter(survey_year %in% (yr -1):yr) %>%
+  group_by(survey_year) %>%
+  summarize(total_redds = sum(total_redds)) %>%
+  mutate(DIFF = total_redds - lag(total_redds),
+         percent_diff = total_redds / lag(total_redds)) %>%
+  arrange(desc(survey_year)) %>%
+  mutate(survey_year = as.character(survey_year)) %>%
+  flextable()%>%
+    set_caption(
+      caption = "Redd Counts total difference from previous year",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r Table 5. Redds_pHOS, eval=TRUE}
+typology <- data.frame(
+  col_keys = c( "MPG", "POP_NAME", "total_redds", "pHOS", "n_pHOS"),
+  what = c("MPG", "Population", "Total Redds", "pHOS", "pHOS"),
+  measure = c("MPG", "Population", "Total Redds", "Estimate", "n"),
+  stringsAsFactors = FALSE )
+
+
+CHS_sgs_age_df %>% 
+  filter(survey_year == yr) %>%
+  mutate_at(c('pHOS', 'pHOS_lwr', 'pHOS_upr'), round, 2) %>%
+  mutate_at(c('pHOS', 'pHOS_lwr', 'pHOS_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pHOS = paste0(pHOS,' (',pHOS_lwr,', ',pHOS_upr,')')) %>%
+  mutate(pHOS =  case_when(pHOS == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pHOS)) %>%
+  mutate(n_pHOS = case_when(
+    is.na(n_pHOS) ~ 0,
+          TRUE ~ n_pHOS)
+  ) %>%
+  select(MPG, POP_NAME, total_redds, pHOS, n_pHOS) %>%
+  # mutate(POP_NAME = gsub("_","/",POP_NAME)) %>% # test for pdf capabilities
+  arrange(MPG, POP_NAME) %>%
+flextable() %>%
+  set_header_df(mapping = typology, key = "col_keys" ) %>%
+  merge_h(part = "header") %>%
+  merge_v(j = c("MPG","POP_NAME", 'total_redds'), part = "header") %>%
+  merge_v(j = "MPG", part = "body") %>%
+  valign(valign = "top") %>%
+  colformat_char(na_str = '-') %>%
+  set_caption(
+        caption = paste0('Total redds counted and proportion of hatchery origin spawners from combined natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected during ',yr,' spawning ground surveys (MPG = major population group, pHOS = proportion of hatchery-origin spawners, 95% CIs in parentheses).'),
+        style = "Table Caption",
+        autonum = run_autonum(seq_id = "tab", bkm = "tab5")) %>%
+  flextable::footnote(i = c(1,2,8,13), 
+                      j = 2,
+                      value = as_paragraph(" Population received hatchery outplants which may have resulted in additional spawning and altered population demographics."),
+                      ref_symbols = " o",
+                      part = "body",
+                      inline = FALSE,
+                      sep = "; "
+                      ) %>%
+  theme_booktabs() %>%
+  align(j = 3:5, align = 'center', part = 'all') %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+
+```{r figure11-chs-redds-ictrt, eval = TRUE, fig.cap = 'Total spring/summer Chinook Salmon redds observed by Nez Perce Tribe personnel in Snake River Basin ICTRT populations by spawn year (dashed line represents the 10-year median)', fig.height=8}
+      
+        CHS_sgs_age_df %>%
+          filter(survey_year %in% yr_range) %>%
+          group_by(POP_NAME) %>%
+          mutate(mu = mean(total_redds, na.rm = TRUE),
+                 mdn = median(total_redds, na.rm = TRUE)) %>%
+          ungroup %>%
+          complete(survey_year, nesting(POP_NAME)) %>% # I don't think this is necessary. SHould fill in missing values?
+        ggplot(aes(x = survey_year, y = total_redds, group = POP_NAME)) +
+          geom_line() +
+  
+          geom_point(size = 2) +
+          geom_hline(aes(yintercept = mdn), linetype = 2) +
+          # ggrepel::geom_label_repel(data = POP_NAME, aes(x=survey_year, y = total_redds, label = POP_NAME)) +
+          #xlim(1995, 2020) +
+          scale_x_continuous(breaks = breaks_pretty()) +
+          facet_wrap(~ POP_NAME, scales = 'free_y', ncol = 3, labeller = label_wrap_gen(width = 20)) +
+          scale_y_continuous(breaks = breaks_pretty(n = 3)) +
+          theme(legend.position = 'bottom') +
+          labs(x = 'Spawn Year',
+               y = 'Total Redds',
+               colour = 'Population') #Why is colour here?
+``` 
+
+\
+
+# Life History Characteristics
+
+\
+
+## Female Proportion
+
+```{r Table #. CHS_weir_metrics, eval = TRUE}
+
+
+CHS_esc_weir_df %>%
+  filter(trap_year == yr) %>%
+  mutate_at(c('pHat_weir', 'pHat_weir_lwr', 'pHat_weir_upr', 'pFemale_weir', 
+              'pFemale_weir_lwr', 'pFemale_weir_upr'), round, 2) %>%
+  mutate_at(c('pHat_weir', 'pHat_weir_lwr', 'pHat_weir_upr', 'pFemale_weir', 
+              'pFemale_weir_lwr', 'pFemale_weir_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pHat_weir = paste0(pHat_weir,' (',pHat_weir_lwr,', ',pHat_weir_upr,')'),
+         pFemale_weir = paste0(pFemale_weir,' (',pFemale_weir_lwr,', ',pFemale_weir_upr,')')) %>%
+  select(stream_name, n_unique, pHat_weir, pFemale_weir) %>%
+flextable() %>%
+  #merge_v(j = "TransectName") %>%
+  #valign(valign = "top") %>%
+  set_header_labels(stream_name = 'Weir', n_unique = 'Unique Fish Handled', pHat_weir = 'Hatchery Fraction', pFemale_weir = 'Female Proportion') %>%
+set_caption(
+      caption = paste0('Hatchery fraction and female proportion of combined natural- and hatchery-origin spring/summer Chinook Salmon returning to Johnson Creek and Lostine River weirs during spawn year ',yr,' (95% CIs in parentheses).'),
+      style = "Table Caption",
+      autonum = run_autonum(seq_id = "tab", bkm = "tab7")) %>%
+  theme_booktabs() %>%
+  align(j = 2:3, align = "center", part = "all" ) %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+**This 10-year average is an average of the estimates for each year. Later I calculate PSM for the entire 10 - year group. which would be correct?**
+
+\
+
+```{r}
+  # 10-year average pFemale Weir
+    CHS_pFemale  <- CHS_esc_weir_df %>%
+        filter(trap_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+      select(stream_name, trap_year, pFemale_weir:pFemale_weir_upr) %>%
+        mutate(mu = mean(pFemale_weir),
+               DIFF = pFemale_weir - lag(pFemale_weir))
+
+  # Last 2 years and mean pFemale Weir
+    CHS_pFemale %>%
+      filter(trap_year %in% (yr-1):yr) %>%
+      mutate(across(.cols = c('pFemale_weir':'DIFF'), round, 3),
+             trap_year = as.character(trap_year)) %>%
+      arrange(stream_name,
+              desc(trap_year)) %>%
+      flextable() %>%
+    set_caption(
+      caption = "pFemale Weir for the past 2 years, the difference, and the 10 year average",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+    # pFemale Johnson Creek
+      
+      CHS_esc_weir_df %>%
+        group_by(stream_name) %>%
+        mutate(mu = mean(pFemale_weir, na.rm = TRUE),
+               DIFF = pFemale_weir - lag(pFemale_weir)) %>%
+        ungroup() %>%
+        filter(stream_name == 'Johnson Creek') %>%
+        select(stream_name, trap_year, pFemale_weir, mu, DIFF) %>%
+        arrange(desc(trap_year)) %>%
+        mutate(trap_year = as.character(trap_year)) %>%
+        flextable() %>%
+    set_caption(
+      caption = "pFemale Weir JC, 10-yr average, and difference from previous year ",
+      style = "Table Caption"
+      ) %>%
+      theme_booktabs()
+```
+
+\
+
+```{r}
+    # pFemale Lostine River
+    
+      CHS_esc_weir_df %>%
+        group_by(stream_name) %>%
+        mutate(mu = mean(pFemale_weir, na.rm = TRUE),
+               DIFF = pFemale_weir - lag(pFemale_weir)) %>%
+        ungroup() %>%
+        filter(stream_name == 'Lostine River') %>%
+        select(stream_name, trap_year, pFemale_weir, mu, DIFF) %>%
+        arrange(desc(trap_year)) %>%
+        mutate(trap_year = as.character(trap_year)) %>%
+        flextable() %>%
+    set_caption(
+      caption = "pFemale Weir LOS, 10-yr average, and difference from previous year",
+      style = "Table Caption"
+        ) %>%
+      theme_booktabs()
+```
+
+\
+
+
+```{r Table 6. CHS_pFmale, eval=TRUE}
+
+typology <- data.frame(
+  col_keys = c( "MPG", "POP_NAME", "pFemale_Carc", "n_pFemale", "psm", "n_psm"),
+  what = c("MPG", "Population", "Female Proportion", "Female Proportion", "Prespawn Mortality", "Prespawn Mortality"),
+  measure = c("MPG", "Population", "Estimate", "n", "Estimate", "n"),
+  stringsAsFactors = FALSE )
+
+CHS_sgs_age_df %>% 
+  filter(survey_year == yr) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), round, 2) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pFemale_Carc = paste0(pFemale_Carc,' (',pFemale_Carc_lwr,', ',pFemale_Carc_upr,')'),
+        psm = paste0(psm,' (',psm_lwr,', ',psm_upr,')')) %>%
+  mutate(pFemale_Carc = case_when(pFemale_Carc == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pFemale_Carc)) %>%
+  mutate(psm = case_when(psm == "NA (NA, NA)" ~ "-",
+                         TRUE ~ psm)) %>%
+  mutate(n_pFemale = case_when(
+    is.na(n_pFemale) ~ 0,
+          TRUE ~ n_pFemale)
+  ) %>%
+  mutate(n_psm = case_when(
+    is.na(n_psm) ~ 0,
+          TRUE ~ n_psm)
+  ) %>%
+  select(MPG, POP_NAME, pFemale_Carc, n_pFemale) %>%
+  arrange(MPG, POP_NAME) %>%
+flextable() %>%
+  set_header_df(mapping = typology, key = "col_keys" ) %>%
+  merge_h(part = "header") %>%
+  merge_v(j = c("MPG","POP_NAME"), part = "header") %>%
+  merge_v(j = "MPG", part = "body") %>%
+  valign(valign = "top") %>%
+  colformat_char(na_str = '-') %>%
+  set_caption(
+        caption = paste0('Estimated female proportion from combined natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected during ',yr,' spawning ground surveys (MPG = major population group, 95% CIs in parentheses).'),
+        style = "Table Caption",
+        autonum = run_autonum(seq_id = "tab", bkm = "tab6")) %>%
+  theme_booktabs() %>%
+  align(j = 3:4, align = 'center', part = 'all') %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+
+```{r data wrangling pFemale carc, include = FALSE}
+
+    # Combine female proportion and samples size into dataframe pFemale_carc
+
+      tmp <- CHS_sgs_age_df %>%
+        filter(survey_year %in% yr_range) %>%
+        select(survey_year, MPG, POP_NAME, pFemale_Carc) %>%
+        arrange(desc(pFemale_Carc))
+
+           
+      tmp2 <- car_dat %>%
+        filter(SurveyYear %in% yr_range,
+               Species == 'Chinook salmon',
+               Run == 'Spring/summer',
+               Sex != 'Unknown') %>%
+        select(MPG, POP_NAME, SurveyYear, Species, Run, Origin, Count) %>%
+        mutate(POP_NAME = case_when(
+          POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
+          TRUE ~ POP_NAME)) %>%
+        group_by(SurveyYear,
+                 POP_NAME) %>%
+        summarize(n_sex = sum(Count, na.rm = TRUE))
+      
+       pFemale_carc  <- tmp %>%
+          full_join(tmp2, by = c('survey_year' = 'SurveyYear', 'POP_NAME' = 'POP_NAME')) %>%
+          arrange(POP_NAME,
+                  survey_year)
+       
+       # writexl::write_xlsx(pFemale_carc, path = '../outputs/pFemale_carc.xlsx')
+
+      
+       
+
+```
+
+
+\
+
+```{r}
+
+glimpse(pFemale_carc)
+     # pFemale Carc n >= 20
+
+     pFemale_carc %>% 
+       group_by(POP_NAME) %>%
+        mutate(pFmale_10_my = mean(pFemale_Carc)) %>%
+       ungroup() %>%
+       filter(survey_year == yr,
+              n_sex >= 20) %>%
+       mutate(mu_yr = mean(pFemale_Carc)) %>%
+       arrange(desc(pFemale_Carc)) %>%
+       flextable() %>%
+    set_caption(
+      caption = "pFemale Carc for populations with a sample size >= 20",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+```{r}
+    
+     # pFemale Carc n < 20
+     pFemale_carc %>% 
+       filter(survey_year == yr,
+              n_sex < 20) %>%
+       arrange(desc(pFemale_Carc)) %>%
+       flextable() %>%
+    set_caption(
+      caption = "pFemale Carc for populations with a sample size < 20",
+      style = "Table Caption"
+    ) %>%
+  theme_booktabs()
+```
+
+\
+
+## PHAT- Proportion Hatchery Origin Individuals at Weir
+
+```{r Table 7. CHS_weir_metrics, eval = TRUE}
+
+CHS_esc_weir_df %>%
+  filter(trap_year == yr) %>%
+  mutate_at(c('pHat_weir', 'pHat_weir_lwr', 'pHat_weir_upr', 'pFemale_weir', 
+              'pFemale_weir_lwr', 'pFemale_weir_upr'), round, 2) %>%
+  mutate_at(c('pHat_weir', 'pHat_weir_lwr', 'pHat_weir_upr', 'pFemale_weir', 
+              'pFemale_weir_lwr', 'pFemale_weir_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pHat_weir = paste0(pHat_weir,' (',pHat_weir_lwr,', ',pHat_weir_upr,')'),
+         pFemale_weir = paste0(pFemale_weir,' (',pFemale_weir_lwr,', ',pFemale_weir_upr,')')) %>%
+  select(stream_name, n_unique, pHat_weir, pFemale_weir) %>%
+flextable() %>%
+  #merge_v(j = "TransectName") %>%
+  #valign(valign = "top") %>%
+  set_header_labels(stream_name = 'Weir', n_unique = 'Unique Fish Handled', pHat_weir = 'Hatchery Fraction', pFemale_weir = 'Female Proportion') %>%
+set_caption(
+      caption = paste0('Hatchery fraction and female proportion of combined natural- and hatchery-origin spring/summer Chinook Salmon returning to Johnson Creek and Lostine River weirs during spawn year ',yr,' (95% CIs in parentheses).'),
+      style = "Table Caption",
+      autonum = run_autonum(seq_id = "tab", bkm = "tab7")) %>%
+  theme_booktabs() %>%
+  align(j = 2:3, align = "center", part = "all" ) %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+```{r figure14-chs-phat-weir, eval = TRUE, fig.cap = 'Hatchery fraction of spring/summer Chinook Salmon escaping to Johnson Creek and Lostine River weirs by spawn year (2013-2022; grey bands represent 95% CI; dashed line represents the 10-year average).', fig.height=8}
+      CHS_esc_weir_df %>%
+        filter(trap_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+        mutate(mu = mean(pHat_weir, na.rm = TRUE)) %>%
+        ungroup () %>%
+        ggplot(aes(x = trap_year , y = pHat_weir , group = stream_name)) +
+        geom_ribbon(aes(ymin = pHat_weir_lwr , ymax = pHat_weir_upr), alpha = .3) +
+        geom_pointrange(aes(ymin = pHat_weir_lwr , ymax = pHat_weir_upr), 
+                        alpha = .3, size = 0) +
+        geom_line() +
+        geom_point() +
+        geom_hline(aes(yintercept = mu), linetype = 2) +
+        scale_colour_viridis_d(begin = .25) +
+        scale_x_continuous(breaks = breaks_pretty()) +
+        scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(0,1)) +
+        facet_wrap(~stream_name, ncol = 1) +
+        # ylim(0,1) +
+        theme(legend.position = 'bottom') +
+        labs(x = 'Spawn Year',
+             y = 'Hatchery Fraction',
+             colour = 'Chinook Streams')
+```
+
+\
+
+```{r}
+      # Hatchery Fraction Weir 10-year table 
+      CHS_esc_weir_df %>%
+        filter(trap_year %in% yr_range) %>%
+        group_by(stream_name) %>%
+        mutate(mu = mean(pHat_weir, na.rm = TRUE),
+               DIFF = pHat_weir - lag(pHat_weir)) %>%
+        ungroup () %>%
+        select(stream_name, trap_year, pHat_weir, mu, DIFF) %>%
+        arrange(stream_name,
+                desc(trap_year)) %>%
+        mutate(trap_year = as.character(trap_year),
+               across(.cols = c('pHat_weir':'DIFF'), round, 2)) %>%
+          flextable() %>%
+    set_caption(
+                caption = "Hatchery Fraction Weir, 10-year average, and difference from previous year",
+                style = "Table Caption"
+              ) %>%
+            theme_booktabs()
+```
+
+\
+
+## PHOS proportion hatchery origin spawners
+
+\
+
+```{r data wrangling phos carc, include = FALSE}
+      #pHOS spawning grounds
+      tmp <- CHS_sgs_age_df %>%
+        filter(survey_year %in% yr_range) %>%
+        group_by(POP_NAME) %>%
+        mutate(mu = mean(pHOS)) %>%
+        ungroup() %>%
+        filter(survey_year == yr) %>%
+        select(survey_year, MPG, POP_NAME, pHOS, mu) %>%
+        arrange(desc(pHOS))
+      
+      tmp2 <- car_dat %>%
+        filter(SurveyYear %in% yr_range,
+               Species == 'Chinook salmon',
+               Run == 'Spring/summer',
+               Origin != 'Unknown') %>%
+        select(SurveyYear, MPG, POP_NAME, Year, Species, Run, Origin, Count) %>%
+        mutate(POP_NAME = case_when(
+          POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
+          TRUE ~ POP_NAME)) %>%
+        group_by(SurveyYear,
+                 POP_NAME) %>%
+        summarize(n = sum(Count, na.rm = TRUE)) %>%
+        ungroup() %>%
+        mutate(total_carcs = sum(n))
+      
+      pHOS_carc  <- tmp %>%
+        full_join(tmp2, by = c('survey_year' = 'SurveyYear', 'POP_NAME' = 'POP_NAME')) %>%
+        arrange(POP_NAME,
+                survey_year)
+
+      writexl::write_xlsx(pHOS_carc, path = '../outputs/pHOS_carc.xlsx')
+            
+```
+
+```{r}
+      #how many populations
+      pHOS_carc %>%
+      filter(survey_year == yr) %>%
+        count() %>%
+      flextable() %>%
+        set_caption(
+          caption = "Count of populations",
+          style = "Table Caption"
+          ) %>%
+        theme_booktabs()
+```
+
+\
+
+```{r}
+      #pHOS carc all
+      pHOS_carc %>% 
+      filter(survey_year == yr) %>%
+        arrange(desc(pHOS)) %>%
+        flextable() %>%
+      set_caption(
+        caption = "pHOS carc all populations",
+        style = "Table Caption"
+        ) %>%
+      theme_booktabs()
+```
+
+
+\
+
+```{r}
+      #pHOS Carc >= 20
+      pHOS_carc %>%
+      filter(survey_year == yr) %>%
+        filter(n >= 20) %>%
+        arrange(desc(pHOS)) %>%
+        flextable() %>%
+        set_caption(caption = paste0('pHOS spring/summer Chinook Salmon with sample size >= 20 individiuals ',yr))
+```
+
+\
+
+```{r}
+      #pHOS Carc < 20
+      
+      pHOS_carc %>%
+      filter(survey_year == yr) %>%
+        filter(n < 20) %>%
+        arrange(desc(pHOS)) %>%
+        flextable() %>%
+        set_caption(caption = paste0('pHOS spring/summer Chinook Salmon with sample size < 20 individiuals ',yr))
+```
+
+\
+
+```{r figure15-chs-phos-carc-ictrt, eval = TRUE, fig.cap = 'Proportion of hatchery-origin spring/summer Chinook Salmon spawners (pHOS) in each Nez Perce Tribe surveyed ICTRT population estimated from carcasses collected during spawning ground surveys over the last 10-years (2013-2022). Grey bands represent 95% CI).', fig.height=9}
+      CHS_sgs_age_df %>%
+        filter(survey_year %in% yr_range) %>%
+        group_by(POP_NAME) %>%
+        mutate(mu = mean(pHOS, na.rm = TRUE)) %>%
+        ungroup() %>%
+        ggplot(aes(x = survey_year, y = pHOS)) +
+        geom_ribbon(aes(ymin = pHOS_lwr, ymax = pHOS_upr), alpha = .3) +
+        #geom_errorbar(aes(ymin = pHOS_lwr, ymax = pHOS_upr)) +
+        geom_pointrange(aes(ymin = pHOS_lwr, ymax = pHOS_upr), alpha = .3, size = 0) +
+        geom_line() +
+        geom_point() +
+        geom_hline(aes(yintercept = mu), linetype = 2) +
+        scale_colour_viridis_d(direction = -1) +
+        scale_x_continuous(breaks = breaks_pretty()) +
+        scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(0,1)) +
+        guides(colour = guide_legend(nrow = 2)) +
+        facet_wrap(~ POP_NAME, ncol = 3, labeller = label_wrap_gen(width = 20)) +
+        labs(x = 'Spawn Year',
+             y = 'pHOS')
+```
+
+\
+
+# Age Composition
+
+\
+
+**Something is strange with the 2021 estimates from the 2023 IPTDS estimates**
+
+```{r figure17-chs-page-iptds, eval = TRUE, fig.cap = 'Age proportions of natural-origin spring/summer Chinook Salmon throughout ICTRT populations using PIT-tag detections at in-stream arrays (IPTDSW 2023). We could not calculate age proportions for the survey year 2020 without PIT tagging and age sample collection at Lower Granite Dam.',fig.width=7, fig.height=8}
+
+      iptds_age %>%
+        mutate(across(c(spawn_year, estimate, lower_ci, upper_ci), as.numeric)) %>%
+        filter(species == 'Chinook salmon',
+               spawn_year %in% yr_range) %>%
+        # filter(!is.na(estimate)) #%>%
+        # filter(Name != 'NA') %>%
+        # filter(age %in% c(3:5)) %>%
+        mutate(Name = case_when(
+          Name == 'Lostine River' ~ 'Wallowa/Lostine River',
+          TRUE ~ Name)) %>%
+        filter( Name != 'South Fork Salmon River mainstem',
+                age != '6',
+                age != '2') %>%
+        ggplot(aes(x = Name, y = estimate, fill = as.factor(age))) +
+        geom_bar(stat = 'identity', position = position_fill(reverse = TRUE)) +
+        scale_fill_viridis_d(direction = 1, option = "D") +
+        # scale_fill_futurama() +
+        scale_y_continuous(breaks = breaks_pretty(n=3)) +
+        facet_wrap( ~ spawn_year, ncol = 5, labeller = label_wrap_gen(width = 20)) +
+        coord_flip() +
+        labs(x = '',
+             y = 'Age Proportion',
+             fill = 'Total Age') +
+        theme(strip.text.y = element_text(angle = 0),
+              axis.text.y = element_text(size = 8, vjust = 0),
+              panel.spacing.x = unit(1,"lines"))
+
+```
+
+\
+
+**ADD SAMPLE SIZES TO AGE TABLE?**
+
+\
+
+
+```{r}
+CHS_sgs_age_df %>% 
+  filter(survey_year == yr) %>%
+  mutate_at(c('pAge_3', 'pAge_3_lwr', 'pAge_3_upr', 
+              'pAge_4', 'pAge_4_lwr', 'pAge_4_upr',
+              'pAge_5', 'pAge_5_lwr', 'pAge_5_upr'), round, 2) %>%
+  mutate_at(c('pAge_3', 'pAge_3_lwr', 'pAge_3_upr', 
+              'pAge_4', 'pAge_4_lwr', 'pAge_4_upr',
+              'pAge_5', 'pAge_5_lwr', 'pAge_5_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pAge_3 = paste0(pAge_3,' (',pAge_3_lwr,', ',pAge_3_upr,')'),
+        pAge_4 = paste0(pAge_4,' (',pAge_4_lwr,', ',pAge_4_upr,')'),
+        pAge_5 = paste0(pAge_5,' (',pAge_5_lwr,', ',pAge_5_upr,')')) %>%
+  mutate(pAge_3 =  case_when(pAge_3 == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pAge_3)) %>%
+  mutate(pAge_4 = case_when(pAge_4 == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pAge_4)) %>%
+  mutate(pAge_5 = case_when(pAge_5 == "NA (NA, NA)" ~ "-",
+                         TRUE ~ pAge_5)) %>%
+  select(MPG, POP_NAME, pAge_3, pAge_4, pAge_5) %>%
+  filter(MPG %in% c("Grande Ronde / Imnaha", "Middle Fork Salmon River", "South Fork Salmon River")) %>%
+# mutate(POP_NAME = gsub("_","/",POP_NAME)) %>% # test for pdf capabilities
+  arrange(MPG, POP_NAME) %>%
+flextable() %>%
+  #merge_h(part = "header") %>%
+  merge_v(j = "MPG", part = "body") %>%
+  valign(valign = "top") %>%
+  set_header_labels(POP_NAME = 'Population', pAge_3 = 'Age 3', pAge_4 = 'Age 4', pAge_5 = 'Age 5') %>%
+  colformat_char(na_str = '-') %>%
+  set_caption(
+        caption = paste0(' Estimated age composition of natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected during ',yr,' spawning ground surveys (MPG = major population group, 95% CIs in parentheses).'),
+        style = "Table Caption") %>%
+  theme_booktabs() %>%
+  align(align = "center", j = 3:5, part = "all" ) %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+```
+
+\
+
+```{r figure16-chs-page-carc, eval = TRUE, fig.cap = 'Combined natural- and hatchery-origin age proportions of spring/summer Chinook Salmon spawners in each Nez Perce Tribe surveyed ICTRT population as estimated from carcasses collected during the last 10-years (2013-2022) of spawning ground surveys. We derived age estimates from coded wire tags, passive integrated transponder tags, visual implant elastomer tags, genetic samples, fin ray samples, and scale samples.', fig.height=9}
+
+      CHS_age_p <- CHS_sgs_age_df %>%
+        select(-Notes, -pHOS,-pHOS_lwr,-pHOS_upr,
+               -pFemale_Carc, -pFemale_Carc_lwr, -pFemale_Carc_upr,
+               -psm, -psm_lwr, -psm_upr, -total_redds) %>%
+        pivot_longer(cols = !c(survey_year, MPG, POP_NAME),
+                     names_to = c('age1','type'),
+                     names_sep = '_',
+                     names_prefix = 'pAge_',
+                     values_to = 'p') %>%
+        replace_na(list(type = 'p')) %>%
+        pivot_wider(names_from = type, values_from = p)
+      
+      #filter and pipe data into figure
+      CHS_age_p %>%
+        filter(!is.na(p),
+               survey_year %in% yr_range) %>%
+        filter(POP_NAME != "Little Salmon River") %>%
+        ggplot(aes(x = POP_NAME, y = p, fill = age1)) +
+        geom_bar(stat = 'identity', position = position_fill(reverse = TRUE)) +
+        #geom_errorbar(aes(ymin = lwr, ymax = upr), position = position_dodge(width = .2)) +
+        #geom_point(size = 2, position = position_dodge(width = .2)) +
+        scale_fill_viridis_d(direction = 1) +
+        # scale_fill_futurama() +
+        scale_y_continuous(breaks = breaks_pretty(n=3)) +
+        guides(fill = guide_legend(nrow = 1)) +
+        #xlim(1995, 2020) +
+        #facet_wrap( ~ POP_NAME, labeller = label_wrap_gen(width = 20), dir = 'v') +
+        facet_wrap( ~ survey_year, ncol = 2) +
+        coord_flip() +
+        labs(x = '',
+             y = 'Age Proportion',
+             fill = 'Total Age') +
+        theme(strip.text.y = element_text(angle = 0),
+              panel.spacing.x = unit(1,"lines"))      
+      
+```
+
+\
+
+```{r, echo = FALSE}
+glimpse(car_dat)
+
+# car_neor <- get_CarcassData_NEOR()
+# save(car_neor, file = '../data/car_neor.rda')
+load('../data/car_neor.rda')
+
+
+# this doesn't match up to populations
+tmp <- car_neor %>%
+  filter(Year %in% yr_range) %>%
+  select(River, Year, contains("age"), - BestAge, -AgeKey, - LengthAge) # is there now a fin age field?
+
+glimpse(tmp)
+
+tmp2 <- pivot_longer(tmp, cols = 3:6, names_to = "age_type", values_to = "age")
+
+
+n_age_neor <- tmp2 %>%
+  filter(!is.na(age),
+         age > 0) %>%
+  group_by(River,
+           Year) %>%
+  count()
+
+n_age_neor %>%
+  mutate(Year = as.character(Year)) %>%
+  flextable() %>%
+  set_caption(caption = "Age sample sizes for NEOR .this doesn't match up to populations") %>%
+  theme_booktabs()
+
+writexl::write_xlsx(n_age_neor, path = '../outputs/n_age_neor.xlsx')
+
+
+```
+
+\
+
+```{r, echo=FALSE}
+
+
+car_neor2 <- clean_carcassData_NEOR(car_neor)
+glimpse(car_neor2)
+
+tmp <- car_neor2 %>%
+  filter(Year %in% yr_range) %>%
+  select(MPG, POP_NAME, contains("year"), contains("age"))
+
+
+tmp2 <- pivot_longer(tmp, cols = c("CWT_Age":"Scale_Age"), names_to = "age_type", values_to = "age")
+
+glimpse(tmp2)
+unique(tmp2$age)
+
+n_age_neor2 <- tmp2 %>%
+  filter(!is.na(age),
+         age > 0) %>%
+  group_by(MPG,
+           POP_NAME,
+           SurveyYear) %>%
+  mutate(POP_NAME = case_when(
+        POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
+        TRUE ~ POP_NAME
+      )) %>%
+  count()
+
+writexl::write_xlsx(n_age_neor2, path = '../outputs/n_age_neor2.xlsx')
+
+n_age_neor2 %>%
+  mutate(SurveyYear = as.character(SurveyYear)) %>%
+  flextable() %>%
+  set_caption(caption = "Age sample sizes for NEOR .This probabably includes length age and best age which it should not...") %>%
+  theme_booktabs()
+
+
+```
+
+
+\
+
+# size at Return
+
+\
+
+## Size of trapped fish
+
+```{r figure18-chs-fl-weir, eval = TRUE, fig.cap = paste0('Fork length distributions of natural- and hatchery-origin spring/summer Chinook Salmon trapped at Johnson Creek and Lostine River weirs during spawn year ',yr,' (bars) compared to all fish collected over the past 10-years (line).')}
+spsm_size <- trap_dat %>%
+        filter(species == 'Chinook',
+               age_designation != 'Mini-Jack') %>%
+        filter(stream %in% c('Johnson Creek', 'Lostine River')) %>%
+        # filter(trap_year == yr) %>%
+        filter(target_species == species) %>%
+        filter(!recap) %>%
+        rename(fins_origin = origin) %>%
+        mutate(origin = case_when(fins_origin == 'Uncategorized' ~ 'Unknown',
+                                  str_detect(fins_origin, 'Hatchery, Natural') ~ 'Unknown',
+                                  str_detect(fins_origin, 'Nat') ~ 'Natural',
+                                  str_detect(fins_origin, 'Hatchery') ~ 'Hatchery',
+                                  TRUE ~ 'Unknown')) %>%
+        filter(origin != 'Unknown') %>%
+        mutate(length = as.numeric(length))
+      
+      ggplot() +
+        geom_histogram(data = spsm_size[spsm_size$trap_year==yr,], aes(x = length, y = ..density..), colour = 'black', binwidth = 10) +
+        geom_density(data = spsm_size, aes(x = length), size = 1) +
+        scale_y_continuous(breaks= breaks_pretty()) +
+        facet_grid(weir ~ origin) +
+        labs(x = 'Fork Length (mm)',
+             y = 'Density')
+
+```
+
+\
+
+```{r}
+  # Trapped fish descriptive stats. all ages. 
+    trap_dat %>%
+        filter(trap_year == yr,
+               species == 'Chinook',
+               stream %in% c("Lostine River", "Johnson Creek")) %>%
+      group_by(stream) %>%
+      summarize(min_fl = min(length),
+                mean_fl = mean(length),
+                median_fl = median(length),
+                max_fl = max(length)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Descriptive FL stats of trapped fish all Ages ')) %>%
+      theme_booktabs()
+```
+
+\
+
+## Size of carcasses
+
+\
+
+```{r figure19-chs-fl-carc, eval = TRUE, fig.cap = 'Fork length distributions of natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected from Nez Perce Tribe monitored ICTRT populations during spawning ground surveys (bar) and for the last 10-years (line)'}
+
+spsm_car_size <- car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(ForkLength > 299) %>%
+      filter(POP_NAME != "NA") %>%
+      filter(CarcassSpecies == 'S_CHN') %>% # REMOVE NON-TARGET THIS WAY!!!!!!
+      filter(Species == 'Chinook salmon', Run == 'Spring/summer') %>%
+      mutate(POP_NAME = case_when(
+        POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
+        TRUE ~ POP_NAME
+      ))
+
+    
+    ggplot() +
+      geom_histogram(data = spsm_car_size[spsm_car_size$SurveyYear == yr,], aes(x = ForkLength, y = ..density..), binwidth = 10, colour = 'black')+ #specify data and year
+      geom_density(data = spsm_car_size, aes(x = ForkLength), size = 1) +
+      # scale_y_continuous(breaks= breaks_pretty()) +
+      scale_y_continuous(breaks = c(0, 0.005, 0.010), limits = c(0,0.015)) +
+      facet_wrap(~ POP_NAME, scales = 'free_y', labeller = label_wrap_gen(width = 20), drop = TRUE) +
+      labs(x = 'Fork Length',
+           y = 'Density')
+    
+```
+
+\
+
+
+```{r data wrangling FL carc, include = FALSE}
+
+spsm_car_size <- car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(ForkLength > 299,
+             ForkLength != 999) %>% # remove 999 place holder
+      filter(POP_NAME != "NA") %>%
+      filter(CarcassSpecies == 'S_CHN') %>% # REMOVE NON-TARGET THIS WAY!!!!!!
+      filter(Species == 'Chinook salmon', Run == 'Spring/summer') %>%
+      mutate(POP_NAME = case_when(
+        POP_NAME == 'Lostine River' ~ 'Wallowa/Lostine River',
+        TRUE ~ POP_NAME
+      ))
+
+   # descriptive stats for the current year 
+    tmp1 <-spsm_car_size %>%
+      filter(SurveyYear == yr) %>%
+      group_by(POP_NAME) %>%
+      summarize(n = sum(Count),
+                min_fl = min(ForkLength),
+                mean_fl = mean(ForkLength),
+                median_fl = median(ForkLength),
+                max_fl = max(ForkLength)) %>%
+      ungroup() %>%
+      mutate(total_carc = sum(n)) %>%
+      arrange(desc(n)) 
+    
+    # descriptive stats for the 10-year
+    tmp2 <- spsm_car_size %>%
+      filter(SurveyYear %in% yr_range) %>%
+      group_by(POP_NAME) %>%
+      summarize(n_10yr = sum(Count),
+                min_fl_10yr = min(ForkLength),
+                mean_fl_10yr = mean(ForkLength),
+                median_fl_10yr = median(ForkLength),
+                max_fl_10yr = max(ForkLength)) %>%
+      ungroup() %>%
+      mutate(total_carc_10yr = sum(n_10yr))
+ 
+    # Join stats dataframes
+    size_stats <- tmp1 %>%
+      full_join(tmp2, by = c("POP_NAME" = "POP_NAME"))
+    
+    # remove unnecessary dataframes
+    rm(tmp1, tmp2)  
+
+```
+
+\
+
+```{r}
+    size_stats %>%
+      arrange(desc(n)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Caracss FL Stats ')) %>%
+      theme_booktabs() %>%
+      align(j = 2:7, align = 'center', part = 'all') %>%
+      autofit()
+```
+
+\
+
+```{r}
+    # size stat where n >= 20
+    size_stats %>%
+      filter(n >= 20) %>%
+      arrange(desc(n)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Caracss FL Stats where sample size >= 20')) %>%
+      theme_booktabs() %>%
+      align(j = 2:7, align = 'center', part = 'all') %>%
+      autofit()
+```
+
+\
+
+# Productivity
+
+\
+
+## Prespawn Mortality
+
+```{r}
+    CHS_sgs_age_df %>% 
+          filter(survey_year %in% yr_range) %>%
+          mutate(mu_psm_SB_10yr = mean(psm, na.rm = TRUE)) %>%
+          group_by(POP_NAME) %>%
+          mutate(mu_psm_pop_10yr = mean(psm, na.rm = TRUE)) %>%
+          ungroup() %>%
+          filter(survey_year == yr) %>%
+          mutate_at(c('psm', 'psm_lwr', 'psm_upr'), round, 2) %>%
+          mutate_at(c('psm', 'psm_lwr', 'psm_upr'), sprintf, fmt = "%.2f") %>%
+          mutate(psm = paste0(psm,' (',psm_lwr,', ',psm_upr,')')) %>%
+          mutate(psm = case_when(psm == "NA (NA, NA)" ~ "-",
+                                 TRUE ~ psm)) %>%
+          select(survey_year, MPG, POP_NAME, psm, mu_psm_pop_10yr, mu_psm_SB_10yr) %>%
+          # mutate(POP_NAME = gsub("_","/",POP_NAME)) %>% # test for pdf capabilities
+          arrange(desc(psm)) %>%
+          mutate(survey_year = as.character(survey_year)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Prespawn Mortality for current year from project contributed PMs. 10 year means (mu) are likely biased from performance measures calculated by a small sample size')) %>%
+          theme_booktabs() %>%
+          align(j = 4:6, align = 'center', part = 'all') %>%
+          align(j = 2:3, align = 'center', part = 'header') %>%
+          autofit()
+
+```
+
+\
+
+
+
+
+\
+
+**Below I calculated prespawn mortality across all populations and across time from CDMS data for comparison. I felt this would remove bias that would be inherent in taking a mean of the summary parameters above.**
+
+\
+
+```{r}
+    # psm all populations 10-year
+    car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(SurveyYear %in% yr_range, 
+             Species == 'Chinook salmon',
+             Run == 'Spring/summer') %>%
+      filter(SpawnedOut != 'Unknown') %>%
+      filter(Origin != 'Unknown') %>%
+      filter(Sex == 'Female') %>%
+      # est_goup_p calculated p by group
+      est_group_p(.summary_var = SpawnedOut, alpha = 0.05) %>% 
+      filter(SpawnedOut != 'NA',
+             SpawnedOut != 'REQUIRED') %>%
+      mutate(n_female = sum(n)) %>%
+      filter(SpawnedOut == 'No') %>%
+      flextable() %>%
+      set_caption(caption = paste0('Snake Basin (all populations) Prespawn Mortality 10-year calculated from CDMS'))
+```
+
+\
+
+```{r}
+    # psm all populations by year
+    car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(SurveyYear %in% yr_range, 
+             Species == 'Chinook salmon',
+             Run == 'Spring/summer') %>%
+      filter(SpawnedOut != 'Unknown') %>%
+      filter(Origin != 'Unknown') %>%
+      filter(Sex == 'Female') %>%
+      # est_goup_p calculated p by group
+      est_group_p(.summary_var = SpawnedOut, alpha = 0.05, SurveyYear) %>% 
+      filter(SpawnedOut != 'NA',
+             SpawnedOut != 'REQUIRED') %>%
+      group_by(SurveyYear) %>%
+      arrange(desc(SurveyYear)) %>%
+      mutate(SurveyYear = as.character(SurveyYear),
+             n_female = sum(n)) %>%
+      ungroup() %>%
+      filter(SpawnedOut == 'No') %>%
+      flextable() %>%
+      set_caption(caption = paste0('Snake Basin (all populations) Prespawn Mortality, by year calculated from CDMS'))
+
+```
+
+```{r data wrangling psm, include = FALSE}
+    # organized data and estimate group P for prespawn mortality.
+    chs_car_psm <- car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(SurveyYear %in% yr_range, 
+             Species == 'Chinook salmon',
+             Run == 'Spring/summer') %>%
+      filter(SpawnedOut != 'Unknown') %>%
+      filter(Origin != 'Unknown') %>%
+      filter(Sex == 'Female') %>%
+      # estimate group p down to TRT_POPID
+      est_group_p(.summary_var = SpawnedOut, alpha = 0.05, SurveyYear, POP_NAME) %>%
+      group_by(SurveyYear,
+               POP_NAME) %>%
+      mutate(n_female = sum(n)) %>%
+      ungroup() %>%
+      # # filter(n > 5) %>%
+      filter(SpawnedOut == 'No') %>%
+      arrange(POP_NAME,
+              SurveyYear)
+
+    # writexl::write_xlsx(chs_car_psm, path = '../outputs/chs_car_psm.xlsx')
+
+
+```
+
+```{r, eval=FALSE}
+    n_psm <- car_dat %>%
+      mutate(POP_NAME = gsub('_', ' / ',POP_NAME)) %>%
+      filter(SurveyYear %in% yr_range, 
+             Species == 'Chinook salmon',
+             Run == 'Spring/summer') %>%
+      filter(SpawnedOut != 'Unknown') %>%
+      filter(Origin != 'Unknown') %>%
+      filter(Sex == 'Female') %>%
+      group_by(SurveyYear,
+               POP_NAME)%>%
+      summarize(n_psm = sum(Count)) %>%
+      arrange(POP_NAME,
+              SurveyYear)
+    
+
+
+    
+
+          n_psm %>%
+            arrange(desc(SurveyYear),
+                    POP_NAME) %>%
+            mutate(SurveyYear = as.character(SurveyYear)) %>%
+            flextable()
+
+```
+
+\
+
+```{r}
+    # All populations arranged by psm
+    chs_car_psm %>%
+      filter(SurveyYear == yr) %>%
+      mutate(SurveyYear = as.character(SurveyYear)) %>%
+      arrange(desc(p)) %>%
+      flextable()%>%
+      set_caption(caption = paste0('Prespawn Mortality by population calculated from CDMS'))
+```
+
+\
+
+```{r}
+    # Populations >= 20 n_female arranged by psm 
+    chs_car_psm %>%
+      filter(SurveyYear == yr) %>%
+      filter(n_female >= 20) %>%
+      mutate(SurveyYear = as.character(SurveyYear)) %>%
+      arrange(desc(p)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Prespawn Mortality by population with sample size >= 20 calculated from CDMS'))
+```
+
+\
+
+```{r}
+    # Populations < 20 n_female arranged by psm
+    chs_car_psm %>%
+      filter(SurveyYear == yr) %>%
+      filter(n_female < 20) %>%
+      mutate(SurveyYear = as.character(SurveyYear)) %>%
+      arrange(desc(p)) %>%
+      flextable() %>%
+      set_caption(caption = paste0('Prespawn Mortality by population with sample size < 20 calculated from CDMS'))
+```
+
+\
+
+```{r figure20-chs-psm, eval = TRUE, fig.cap = 'Prespawn mortality of combined natural- and hatchery-origin spring/summer Chinook Salmon collected during spawning ground surveys for the past 10 years (2012-2022) in each Nez Perce Tribe surveyed ICTRT population. Error bars show 95% CIs.', fig.height= 8}
+    # Figure 20
+    CHS_sgs_age_df %>%
+      ggplot(aes(x = survey_year, y = psm)) +
+      geom_errorbar(aes(ymin = psm_lwr, ymax = psm_upr)) +
+      #geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = .2) +
+      geom_point(size = 2) +
+      scale_colour_viridis_d(direction = -1, end = .5) +
+      scale_x_continuous(breaks = breaks_pretty()) +
+      scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(0,1)) +
+      facet_wrap(~POP_NAME, ncol = 3, labeller = label_wrap_gen(width = 20)) +
+      #coord_flip() +
+      labs(x = 'Spawn Year',
+           y = 'Female Prespawn Mortality') +
+      theme(strip.text.y = element_text(angle = 0))   
+```
+
+\
+
+```{r Table 6. CHS_psm, eval=TRUE}
+
+typology <- data.frame(
+  col_keys = c( "MPG", "POP_NAME", "pFemale_Carc", "n_pFemale", "psm", "n_psm"),
+  what = c("MPG", "Population", "Female Proportion", "Female Proportion", "Prespawn Mortality", "Prespawn Mortality"),
+  measure = c("MPG", "Population", "Estimate", "n", "Estimate", "n"),
+  stringsAsFactors = FALSE )
+
+
+
+
+CHS_sgs_age_df %>% 
+  filter(survey_year == yr) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), round, 2) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pFemale_Carc = paste0(pFemale_Carc,' (',pFemale_Carc_lwr,', ',pFemale_Carc_upr,')'),
+        psm = paste0(psm,' (',psm_lwr,', ',psm_upr,')')) %>%
+  mutate(pFemale_Carc = case_when(pFemale_Carc == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pFemale_Carc)) %>%
+  mutate(psm = case_when(psm == "NA (NA, NA)" ~ "-",
+                         TRUE ~ psm)) %>%
+  mutate(n_pFemale = case_when(
+    is.na(n_pFemale) ~ 0,
+          TRUE ~ n_pFemale)
+  ) %>%
+  mutate(n_psm = case_when(
+    is.na(n_psm) ~ 0,
+          TRUE ~ n_psm)
+  ) %>%
+  select(MPG, POP_NAME, psm, n_psm) %>%
+  arrange(MPG, POP_NAME) %>%
+flextable() %>%
+  set_header_df(mapping = typology, key = "col_keys" ) %>%
+  merge_h(part = "header") %>%
+  merge_v(j = c("MPG","POP_NAME"), part = "header") %>%
+  merge_v(j = "MPG", part = "body") %>%
+  valign(valign = "top") %>%
+  colformat_char(na_str = '-') %>%
+  set_caption(
+        caption = paste0('Estimated prespawn mortality from combined natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected during ',yr,' spawning ground surveys (MPG = major population group, 95% CIs in parentheses).'),
+        style = "Table Caption",
+        autonum = run_autonum(seq_id = "tab", bkm = "tab6")) %>%
+  theme_booktabs() %>%
+  align(j = 3:4, align = 'center', part = 'all') %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+```{r Table 6. CHS_psm_20, eval=TRUE}
+
+typology <- data.frame(
+  col_keys = c( "MPG", "POP_NAME", "pFemale_Carc", "n_pFemale", "psm", "n_psm"),
+  what = c("MPG", "Population", "Female Proportion", "Female Proportion", "Prespawn Mortality", "Prespawn Mortality"),
+  measure = c("MPG", "Population", "Estimate", "n", "Estimate", "n"),
+  stringsAsFactors = FALSE )
+
+
+
+
+CHS_sgs_age_df %>% 
+  filter(survey_year == yr) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), round, 2) %>%
+  mutate_at(c('pFemale_Carc', 'pFemale_Carc_lwr', 'pFemale_Carc_upr',
+              'psm', 'psm_lwr', 'psm_upr'), sprintf, fmt = "%.2f") %>%
+  mutate(pFemale_Carc = paste0(pFemale_Carc,' (',pFemale_Carc_lwr,', ',pFemale_Carc_upr,')'),
+        psm = paste0(psm,' (',psm_lwr,', ',psm_upr,')')) %>%
+  mutate(pFemale_Carc = case_when(pFemale_Carc == "NA (NA, NA)" ~ "-",
+                            TRUE ~ pFemale_Carc)) %>%
+  mutate(psm = case_when(psm == "NA (NA, NA)" ~ "-",
+                         TRUE ~ psm)) %>%
+  mutate(n_pFemale = case_when(
+    is.na(n_pFemale) ~ 0,
+          TRUE ~ n_pFemale)
+  ) %>%
+  mutate(n_psm = case_when(
+    is.na(n_psm) ~ 0,
+          TRUE ~ n_psm)
+  ) %>%
+  select(MPG, POP_NAME, psm, n_psm) %>%
+  filter(n_psm >= 20) %>%
+  arrange(desc(psm)) %>%
+flextable() %>%
+  set_header_df(mapping = typology, key = "col_keys" ) %>%
+  merge_h(part = "header") %>%
+  merge_v(j = c("MPG","POP_NAME"), part = "header") %>%
+  merge_v(j = "MPG", part = "body") %>%
+  valign(valign = "top") %>%
+  colformat_char(na_str = '-') %>%
+  set_caption(
+        caption = paste0('Estimated prespawn mortality from combined natural- and hatchery-origin spring/summer Chinook Salmon carcasses collected during ',yr,' spawning ground surveys with a sample size >= 20 (MPG = major population group, 95% CIs in parentheses).'),
+        style = "Table Caption",
+        autonum = run_autonum(seq_id = "tab", bkm = "tab6")) %>%
+  theme_booktabs() %>%
+  align(j = 3:4, align = 'center', part = 'all') %>%
+  autofit() %>%
+  set_table_properties(layout = "autofit")
+
+```
+
+\
+
+## Progeny-per-parent
+
+```{r}
+    CHS_productivity_df %>%
+      filter(brood_year == yr - 5) %>%
+      mutate(sar = round(sar, 2),
+             ppp = round(ppp, 2),
+             spawners_trib = round(spawners_trib, 0),
+             adult_progeny = round(adult_progeny, 0)) %>%
+      select(-brood_year, -spawners_female, -rps_f) %>%
+      flextable() %>%
+      merge_v(j = "stream_name", part = "body") %>%
+      valign(valign = "top") %>%
+      set_header_labels(stream_name = 'Stream', origin = 'Origin', spawners_trib = 'Tributary Spawners',
+                        juv_trib = 'Juvenile Recruits', adult_progeny = 'Adult Progeny',
+                        sar = 'SAR%', ppp = 'Progeny-per-Parent') %>%
+      set_caption(
+        caption = paste0('Spring/summer Chinook Salmon performance measures including adult progeny-per-parent and smolt-to-adult return (SAR) productivity estimates for Johnson Creek and Lostine River natural and hatchery spawning during brood year ',by_chs,'.'),
+        style = "Table Caption") %>%
+      theme_booktabs() %>%
+      align(j = 3:7, align = 'center', part = 'all') %>%
+      autofit() %>%
+      set_table_properties(layout = "autofit")
+```
+
+\
+
+```{r figure21-chs-ppp-weir, eval = TRUE, fig.cap = 'Spring/summer Chinook Salmon progeny-per-parent in Johnson Creek and Lostine River for brood years 2008-2017 presented on the log scale, where the dashed line indicates replacement. Progeny recruits include all age-3 jack and adult returns for the brood year.'}
+CHS_productivity_df %>%
+      filter(brood_year %in% by_range) %>%
+      mutate(lest = log(ppp),
+             replace = ifelse(lest >= 0, TRUE, FALSE)) %>%
+      ggplot(aes(x = brood_year , y = lest, fill = replace)) +
+      geom_bar(stat = 'identity') +
+      # geom_pointrange(aes(ymin = lower_ci, ymax = upper_ci),
+      #                 position = position_dodge(width = .5)) +
+      geom_hline(yintercept = 0, linetype = 2) +
+      #scale_colour_viridis_d(begin = .1, end = .9) +
+      # scale_fill_manual(values = c('firebrick', 'green4')) +
+      # scale_fill_futurama() +
+      scale_fill_viridis(discrete = TRUE, begin = .01, end = .75, option = "D") +
+      scale_x_continuous(breaks = breaks_pretty()) +
+      #coord_flip() +
+      facet_grid(origin~stream_name) +
+      theme(legend.position = 'bottom') +
+      labs(x = 'Brood Year',
+           y = 'Log(Progeny-per-Parent)',
+           colour = 'Stream',
+           fill = 'Above Replacement') 
+```
+
+\
+
+## SAR - Smolt-to-Adult-Return
+
+\
+
+```{r}
+#Table 8
+CHS_productivity_df %>%
+      filter(brood_year == yr - 5) %>%
+      mutate(sar = round(sar, 2),
+             ppp = round(ppp, 2),
+             spawners_trib = round(spawners_trib, 0),
+             adult_progeny = round(adult_progeny, 0)) %>%
+      select(-brood_year, -spawners_female, -rps_f) %>%
+      flextable() %>%
+      merge_v(j = "stream_name", part = "body") %>%
+      valign(valign = "top") %>%
+      set_header_labels(stream_name = 'Stream', origin = 'Origin', spawners_trib = 'Tributary Spawners',
+                        juv_trib = 'Juvenile Recruits', adult_progeny = 'Adult Progeny',
+                        sar = 'SAR%', ppp = 'Progeny-per-Parent') %>%
+      set_caption(
+        caption = paste0('Table 8. Spring/summer Chinook Salmon performance measures including adult progeny-per-parent and smolt-to-adult return (SAR) productivity estimates for Johnson Creek and Lostine River natural and hatchery spawning during brood year ',by_chs,'.'),
+        style = "Table Caption") %>%
+      theme_booktabs() %>%
+      align(j = 3:7, align = 'center', part = 'all') %>%
+      autofit() %>%
+      set_table_properties(layout = "autofit")
+```
+
+```{r figure23-chs-sar, eval = TRUE, fig.cap = 'Spring/summer Chinook Salmon smolt-to-adult return (SAR) percentage in Johnson Creek and Lostine River.', fig.height=6}
+    CHS_productivity_df %>%
+      filter(brood_year %in% by_range) %>%
+      ggplot(aes(x = brood_year, y = sar, linetype = stream_name)) + #colour = stream_name, 
+      geom_line(size = .8) +
+      geom_point() +
+      geom_smooth(method = lm, se = FALSE) +
+      # scale_colour_viridis_d(begin = .2, end = .8) +
+      # scale_colour_futurama() +
+      scale_colour_viridis(discrete = TRUE, begin = .75, end = .01, option = "D") +
+      # scale_colour_viridis(discrete = TRUE, begin = .7, end = .01, option = "H") +
+      scale_x_continuous(breaks = breaks_pretty(), limits = c(2008,2017)) +
+      facet_wrap(~origin, ncol = 2) +
+      theme(legend.position = 'bottom',
+            legend.title = element_blank()) +
+      labs(x = 'Brood Year',
+           y = 'SAR%',
+           linetype = 'Stream')
+    
+```
+
+\
+
+## RPS Recuits-Per-Female-Spawner
+
+\
+
+```{r}
+# Table 9
+    CHS_productivity_df %>%
+      filter(brood_year == yr - 3) %>%
+      mutate(juv_trib = case_when(
+        is.na(juv_trib) ~ juv_trib,
+        TRUE ~ juv_trib
+      )) %>%
+      mutate(rps_f = round(rps_f, 0),
+             spawners_female = round(spawners_female, 0),
+             juv_trib = round(juv_trib, 0)) %>%
+      select(stream_name, origin, spawners_female, juv_trib, rps_f) %>%
+      flextable() %>%
+      merge_v(j = "stream_name", part = "body") %>%
+      valign(valign = "top") %>%
+      set_header_labels(stream_name = 'Stream', origin = 'Origin', spawners_female = 'Female Spawners', juv_trib = 'Juvenile Recruits', rps_f = 'Recruits-per-Spawner') %>%
+      set_caption(
+        caption = paste0('Table 9. Spring/summer Chinook Salmon juvenile recruits-per-female-spawner for Johnson Creek and Lostine River natural and hatchery spawning during brood year ',by_rps,'. We calculated natural-origin recruits-per-spawner as juvenile emigrants for the tributary per female spawner and hatchery-origin as juvenile smolts released per female collected for broodstock.'),
+        style = "Table Caption") %>%
+      theme_booktabs() %>%
+      align(j = 3:5, align = 'center', part = 'all') %>%
+      autofit() %>%
+      set_table_properties(layout = "autofit")
+```
+
+\
+
+```{r figure24-chs-rps-f, eval = TRUE, fig.cap = 'Spring/summer Chinook Salmon juvenile recruits per female spawner in Johnson Creek and Lostine River for brood years 2010-2019.', fig.height=8}
+    CHS_productivity_df %>%
+      filter(brood_year %in% rps_range) %>%
+      ggplot(aes(x = brood_year, y = rps_f, linetype = stream_name)) + #colour = stream_name,
+      geom_line(size = .8) +
+      geom_point() +
+      # scale_colour_viridis_d(begin = .2, end = .8) +
+      # scale_colour_futurama() +
+      scale_colour_viridis(discrete = TRUE, begin = .75, end = .01, option = "D") +
+      scale_x_continuous(breaks = breaks_pretty()) +
+      facet_wrap(~origin, ncol = 1) +
+      theme(legend.position = 'bottom',
+            legend.title = element_blank()) +
+      labs(x = 'Brood Year',
+           y = 'Juvenile Recruits per Female Spawner',
+           linetype = 'Stream')
+```
+
+\
+
+```{r}
+    rps_mean_10 <- CHS_productivity_df %>%
+      filter(brood_year %in% rps_range) %>%
+      group_by(stream_name,
+               origin) %>%
+      summarize(mean_rps = mean(rps_f, na.rm = TRUE)) %>%
+      pivot_wider(names_from = origin, values_from = mean_rps) %>%
+      mutate(yield = Hatchery / Natural)
+    
+    rps_mean_10 %>%
+      flextable() %>%
+      set_caption(
+        caption = paste0('Spring/summer Chinook Salmon RPS 10-year average'),
+        style = "Table Caption") %>%
+      theme_booktabs()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

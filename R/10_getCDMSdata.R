@@ -5,7 +5,7 @@
 librarian::shelf(ryankinzer/cdmsR,
                  tidyverse)
 
-cdmsR::cdmsLogin('api_user', 'api_user')
+source('./r/cdms_api_keys.R')
 
 # get, save, load dataset(s)
 # get_Datastores() will show list of available datasets
@@ -15,6 +15,8 @@ cdmsR::cdmsLogin('api_user', 'api_user')
     # WeirData <- get_WeirData(Facility = 'NPT GRSME Program') # Change facility filter if working with other streams
 
     # save(WeirData, file = './data/inputs/WeirData.rda')
+
+    # rm(WeirData)
 
     load('./data/inputs/WeirData.rda')
 
@@ -26,6 +28,8 @@ cdmsR::cdmsLogin('api_user', 'api_user')
 
     # save(ReddsData, file = './data/inputs/ReddsData.rda')
     
+    # rm(ReddsData)
+        
     load('./data/inputs/ReddsData.rda')
     
         # unique(sort(ReddsData$Year, decreasing = TRUE))
@@ -36,6 +40,8 @@ cdmsR::cdmsLogin('api_user', 'api_user')
 
     # save(CarcsData, file = './data/inputs/CarcsData.rda')
    
+    # rm(CarcsData)
+    
     load('./data/inputs/CarcsData.rda')
     
     

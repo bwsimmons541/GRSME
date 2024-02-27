@@ -3,7 +3,7 @@
 .RData
 .Ruserdata
 /data
-R/cdms_api_keys.R
+r/cdms_login.R
 .pdf
 .html
 .log
