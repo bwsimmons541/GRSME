@@ -3,7 +3,7 @@
 # this doesn't account for broodstock returns
 # need to get the origin/sex info to do that
 # note that where fish were returned also matters
-# the bs_returned table in T3 is just for fishr eturned to the Lostine
+# the bs_returned table in T3 is just for fish returned to the Lostine
 # but some fish were also returned to the Wallowa in 2020? and other yrs?
 
 library(cuyem)
@@ -11,6 +11,9 @@ library(cdmsR)
 library(tidyverse)
 
 grouping = c('trap_year','stream', 'origin', 'age_designation')
+
+getwd()
+source('./R/11_GRSME_functions.R')
 
 weir_removal_co_mgr <- est_final_dispositions(trap_dat, grouping) %>%
   select(-c(sum_tmp,sub_outplant,sub_recycle)) 

@@ -304,6 +304,11 @@ tmp <- MR_aboveweir %>%
 # add to MR abov weir data frame
 MR_aboveweir <- bind_rows(MR_aboveweir, tmp)
 
+# add to other code to make more efficient
+MR_aboveweir <- MR_aboveweir %>%
+  mutate(umarked = n2 - m2)
+
+writexl::write_xlsx(MR_aboveweir, path = './data/outputs/MR_aboveweir.xlsx')
 
 rm(tmp)
 
@@ -313,8 +318,6 @@ esc_aboveweir <- MR_aboveweir %>%
   bind_rows(method3_hat, method3_nat, method3_all)
 
 rm(method3_hat, method3_nat, method3_all)
-
-# rm(method3_nat, method3_hat, method3_all)
 
 # REMOVE if Unecessary weir removals for escapement estimate ====
 
