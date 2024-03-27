@@ -406,7 +406,8 @@ trib_esc <- left_join(esc_aboveweir,MR_preferred, by = c('SurveyYear','strata'))
   full_join(trib_harvest, by = c('trap_year', 'strata')) %>%
   mutate(trib_esc = N_U + N_D + N_weir + harvest,
          trib_esc_lwr = N_U_lwr + N_D_lwr + N_weir + harvest,
-         trib_esc_upr = N_U_upr + N_D_upr + N_weir + harvest) %>%
+         trib_esc_upr = N_U_upr + N_D_upr + N_weir + harvest,
+         spawners = N_U + N_D) %>%
   rename(weir_removals = N_weir) %>%
   arrange(trap_year, strata)
 

@@ -154,12 +154,23 @@ clean_carcassData_NEOR_v2 <- function (data)
                               Recapture = case_when(Mark_Discernible == TRUE & OPPunch %in% c("Yes", "yes") ~ TRUE, 
                                                     TRUE ~ FALSE), 
                               MR_strata = MarkRecapSizeCategory, 
-                              CWT_Age = ifelse(CWTAge > 0, CWTAge, NA), 
+                              CWT_Age = ifelse(CWTAge > 0, 
+                                               CWTAge, 
+                                               NA), 
                               VIE_Age = NA_integer_, 
-                              PIT_Age = ifelse(PITage > 0, PITage, NA), 
-                              Fin_Age = NA_integer_, 
+                              PIT_Age = ifelse(PITage > 0, 
+                                               PITage, 
+                                               NA), 
+                              Fin_Age = ifelse(FinRayAge_Best > 0,
+                                               FinRayAge_Best,
+                                               NA),
                               Scale_Age = ifelse(BestScaleAge > 0, 
-                                                 BestScaleAge, NA)) %>% 
+                                                 BestScaleAge, 
+                                                 NA),
+                              Best_Age = ifelse(BestAge > 0,
+                                                BestAge,
+                                                NA)) %>%
+
     
     # removed from select ----
         #RadioTag = RadioTag,
@@ -182,6 +193,6 @@ clean_carcassData_NEOR_v2 <- function (data)
            ActivityQAStatusId, ActivityQAComments, FieldsheetLink, 
            QAStatusName, EffDt, Year, AboveWeir, AbovePITArray, 
            AboveRST, Origin, Mark_Discernible, Recapture, MR_strata, 
-           CWT_Age, VIE_Age, PIT_Age, Fin_Age, Scale_Age)
+           CWT_Age, VIE_Age, PIT_Age, Fin_Age, Scale_Age, Fin_Age, Best_Age)
   return(data_clean)
 }

@@ -89,7 +89,7 @@
     
 # Total Esc & Others - Prespawn_Mortality ----
     
-    # prespawn mort, grouped by pop, all sizes ------------------------------------
+    # prespawn mort, grouped by pop, all sizes 
     psm_lostine <- car_dat %>%
       #might be worth double-checking spawned-out criteria in cleaning script
       filter(Sex == 'Female' & SpawnedOut != 'NA',
@@ -107,34 +107,45 @@
     # Build a weir efficiency script
     
     
-# Run Reconstruction
+# Run Reconstruction ----
     
-    load('./data/inputs/CarcsData.rda')
-    glimpse(CarcsData)
-    glimpse(car_dat)
-    unique(car_dat$BestAge)
+
+    # set up age data like shane did for report
+      tmp <- car_dat %>%
+        filter(Species == 'Chinook salmon' & Run == 'Spring/summer') %>%
+        mutate(Best_Age = case_when(!is.na(CWT_Age) ~ as.character(CWT_Age), #add length age? need to go back to cleaning script.
+                                    !is.na(PIT_Age) ~ as.character(PIT_Age),
+                                    !is.na(VIE_Age) ~ as.character(VIE_Age),
+                                    !is.na(Fin_Age) ~ as.character(Fin_Age),
+                                    !is.na(Scale_Age) ~ as.character(Scale_Age)))
+      
+      inf_age <- tmp %>%
+        filter(!is.na(Best_Age), 
+               ForkLength != -999)
+  
+    # age by pop_year, origin, doesn't quite math co-mgr spreadsheet
+      
+      inf_age_p <- inf_age %>%
+        mutate('age_length' = case_when(
+          ForkLength < 630 ~ "J",
+          ForkLength >= 630 ~ "A")) %>%
+        filter(StreamName == "Lostine River") %>%
+        est_group_p(Best_Age, alpha = 0.05,StreamName, SurveyYear, Origin, age_length)
     
-    glimpse(run_rec_age)
-    unique(run_rec_age$ForkLength)
-    
-    tmp <- run_rec_age %>%
-      filter(!is.na(BestAge)  , 
-             ForkLength == -999)
-    
+      write_xlsx(inf_age_p, path = './data/outputs/inferred_age_co_mgr.xlsx')
+      
     # group by year, origin, < 630 mm | >= 630 mm, and BestAge
-     
-    tmp <- car_dat %>%
-      filter(Species == 'Chinook salmon' & Run == 'Spring/summer') %>%
-      mutate(Best_Age = case_when(!is.na(CWT_Age) ~ as.character(CWT_Age),
-                                  !is.na(PIT_Age) ~ as.character(PIT_Age),
-                                  !is.na(VIE_Age) ~ as.character(VIE_Age),
-                                  !is.na(Fin_Age) ~ as.character(Fin_Age),
-                                  !is.na(Scale_Age) ~ as.character(Scale_Age)))
-    run_rec_age <- tmp %>%
-      filter(!is.na(BestAge), 
-             ForkLength != -999)
     
-    
+      best_age_p <- car_dat %>%
+        mutate('age_length' = case_when(
+          ForkLength < 630 ~ "J",
+          ForkLength >= 630 ~ "A")) %>%
+        filter(StreamName == "Lostine River") %>%
+        est_group_p(Best_Age, alpha = 0.05, StreamName, SurveyYear, Origin, age_length)
+
+      write_xlsx(best_age_p, path = './data/outputs/best_age_co_mgr.xlsx')
+            
+      
 # Non Lostine Redds
 
 redds_total_non_los <- redd_dat %>%
@@ -188,10 +199,6 @@ rm(grouping, tmp)
 
 glimpse(car_dat)
 
-unique(car_dat$StreamName)
-unique(car_dat$Species)
-unique(car_dat$Run)
-unique(car_dat$CWT_Age)
 
 
 wal_pop_carcs <- car_dat %>%
@@ -205,3 +212,77 @@ wal_pop_carcs <- car_dat %>%
   group_by(SurveyYear,
            Origin) %>%
   summarize(n_carc = sum(Count, na.rm = TRUE))
+
+
+# total redds by trib
+redds_total <- redd_dat %>%
+  filter(Species == 'Chinook salmon', Run == 'Spring/summer') %>%
+  group_by(SurveyYear,MPG,POP_NAME,StreamName,ActivityId) %>%
+  summarize(NewRedds = mean(NewRedds)) %>% #could we use aggregate function instead
+  group_by(SurveyYear,MPG,POP_NAME, StreamName) %>%
+  summarize(NewRedds = sum(NewRedds))
+
+#if there is one record for each redd
+#?could just count a different field instead of using the newredds field/grouping
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

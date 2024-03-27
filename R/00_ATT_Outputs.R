@@ -53,7 +53,7 @@ librarian::shelf(tidyverse,
       # rm(CarcsData)
       # 
       # save(car_dat, file = './data/inputs/car_dat.rda')
-  
+
   
       load('./data/inputs/car_dat.rda')
           
@@ -109,6 +109,8 @@ write_xlsx(T9_T11, path = './data/outputs/T9-T11-GRSME.xlsx')
 # e.g., jack/adult/origin/all
 
 
+# Natural escapment ----
+
 nat_trib <- trib_esc %>%
   filter(strata == "A_Nat" | strata == "J_Nat") %>%
   mutate(pDOWN = N_D/trib_esc)
@@ -116,3 +118,13 @@ nat_trib <- trib_esc %>%
 glimpse(nat_trib)
 
 writexl::write_xlsx(nat_trib, path = "./data/outputs/nat_trib.xlsx")
+
+# n_unique add LRW add to escapement script ----
+
+n_unique_LRW <- trap_dat %>%
+  filter(recap == "FALSE",
+         species == "Chinook",
+         run == "Summer") %>%
+  group_by(trap_year) %>%
+  summarize(n_unique = sum(count))
+

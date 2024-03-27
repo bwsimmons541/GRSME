@@ -6,3 +6,13 @@ librarian::shelf(janitor)
 ?janitor
 
 ?adorn_totals
+
+# genetic samples from weir ----
+
+tmp <- trap_dat %>%
+  filter(grepl("GEN", samples),
+         trap_year == 2023,
+         species == "Chinook",
+         run == "Summer")
+
+
