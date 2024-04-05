@@ -24,7 +24,7 @@ librarian::shelf(tidyverse,
 #source('./R/getCDMSdata.R') # un-comment to update data sets from CDMS
 
   yr = 2023
-  yr_range = c((yr-9):yr)
+  yr_range = 2009:yr
 
   #Load and CLean Wier Data----
   
@@ -37,7 +37,7 @@ librarian::shelf(tidyverse,
       # rm(WeirData)
       # 
       # save(trap_dat, file = './data/inputs/trap_dat.rda')
-      
+
       load('./data/inputs/trap_dat.rda')
 
   
@@ -54,7 +54,7 @@ librarian::shelf(tidyverse,
       # 
       # save(car_dat, file = './data/inputs/car_dat.rda')
 
-  
+
       load('./data/inputs/car_dat.rda')
           
   # Load and clean Redd Data----
@@ -114,8 +114,6 @@ write_xlsx(T9_T11, path = './data/outputs/T9-T11-GRSME.xlsx')
 nat_trib <- trib_esc %>%
   filter(strata == "A_Nat" | strata == "J_Nat") %>%
   mutate(pDOWN = N_D/trib_esc)
-
-glimpse(nat_trib)
 
 writexl::write_xlsx(nat_trib, path = "./data/outputs/nat_trib.xlsx")
 

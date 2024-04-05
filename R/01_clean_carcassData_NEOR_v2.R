@@ -153,7 +153,10 @@ clean_carcassData_NEOR_v2 <- function (data)
                                                            TRUE ~ FALSE), 
                               Recapture = case_when(Mark_Discernible == TRUE & OPPunch %in% c("Yes", "yes") ~ TRUE, 
                                                     TRUE ~ FALSE), 
-                              MR_strata = MarkRecapSizeCategory, 
+                              MR_strata = MarkRecapSizeCategory,
+                              Length_Age = ifelse(LengthAge > 0,
+                                                  LengthAge,
+                                                  NA),
                               CWT_Age = ifelse(CWTAge > 0, 
                                                CWTAge, 
                                                NA), 
@@ -192,7 +195,7 @@ clean_carcassData_NEOR_v2 <- function (data)
            CWTCode, TagsPetersonDisk, CarcassWPT, DNACollected, 
            ActivityQAStatusId, ActivityQAComments, FieldsheetLink, 
            QAStatusName, EffDt, Year, AboveWeir, AbovePITArray, 
-           AboveRST, Origin, Mark_Discernible, Recapture, MR_strata, 
+           AboveRST, Origin, Mark_Discernible, Recapture, MR_strata, Length_Age,
            CWT_Age, VIE_Age, PIT_Age, Fin_Age, Scale_Age, Fin_Age, Best_Age)
   return(data_clean)
 }

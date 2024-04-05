@@ -279,7 +279,8 @@ rm(c_hfrac_up)
 # Add method 2 size /strata estimates of A and J strata ------------------------------------
 
 tmp <- MR_aboveweir %>%
-  filter(strata != c('A', 'J')) %>%
+  filter(strata != 'A', # "strata != c('A', 'J')" quit working?
+         strata != 'J') %>%
   mutate(strata = case_when(
     strata %in% c('A_Hat', 'A_Nat') ~ 'A',
     strata %in% c('J_Hat', 'J_Nat') ~ 'J',
@@ -308,7 +309,7 @@ MR_aboveweir <- bind_rows(MR_aboveweir, tmp)
 MR_aboveweir <- MR_aboveweir %>%
   mutate(umarked = n2 - m2)
 
-writexl::write_xlsx(MR_aboveweir, path = './data/outputs/MR_aboveweir.xlsx')
+writexl::write_xlsx(MR_aboveweir, path = './data/outputs/escapement/MR_aboveweir.xlsx')
 
 rm(tmp)
 
@@ -318,6 +319,8 @@ esc_aboveweir <- MR_aboveweir %>%
   bind_rows(method3_hat, method3_nat, method3_all)
 
 rm(method3_hat, method3_nat, method3_all)
+
+writexl::write_xlsx(esc_aboveweir, path = './data/outputs/escapement/esc_aboveweir.xlsx')
 
 # REMOVE if Unecessary weir removals for escapement estimate ====
 
@@ -378,9 +381,11 @@ rm(redds, tmp_esc, tmp_weir, tmp_weir3, adults_D, adults_U, MR_aboveweir)
     select(-BS_returned)
 
 rm(bs_returned)
+
+writexl::write_xlsx(N_D, path = './data/outputs/escapement/esc_belowweir.xlsx')
       
 # tributary harvest--------------------------------------------------
-# copied data from comanager spreadsheet
+# copied data from comanager spreadsheet initially - updated annually from ODFW, NPT, CTUIR
 
   trib_harvest = readxl::read_xlsx('./data/inputs/trib_harvest.xlsx') %>% # I need to modify the format of trib_harvest
     filter(ReturnYear %in% yr_range) %>%
@@ -420,19 +425,42 @@ tmp <- trib_esc %>%
   summarize(across(where(is.numeric), sum)) %>%
   mutate(
     stream = "Lostine River",
-    strata = "A + J",
+    strata = "A+J",
+    MR_method = "2 - size/origin strata & 3 - size strata * carcass origin",
+    MR_preferred = "2 - size/origin strata & 3 - size strata * carcass origin"
+  ) 
+
+tmp2 <- trib_esc %>%
+  filter(strata %in% c('A_Hat', 'J_Hat')) %>%
+  group_by(trap_year) %>%
+  summarize(across(where(is.numeric), sum)) %>%
+  mutate(
+    stream = "Lostine River",
+    strata = "A+J_Hat",
+    MR_method = "2 - size/origin strata & 3 - size strata * carcass origin",
+    MR_preferred = "2 - size/origin strata & 3 - size strata * carcass origin"
+  ) 
+
+tmp3 <- trib_esc %>%
+  filter(strata %in% c('A_Nat', 'J_Nat')) %>%
+  group_by(trap_year) %>%
+  summarize(across(where(is.numeric), sum)) %>%
+  mutate(
+    stream = "Lostine River",
+    strata = "A+J_Nat",
     MR_method = "2 - size/origin strata & 3 - size strata * carcass origin",
     MR_preferred = "2 - size/origin strata & 3 - size strata * carcass origin"
   ) 
 
 # Add new strata to table ---------
 trib_esc <- trib_esc %>%
-  bind_rows(tmp) %>%
+  bind_rows(tmp, tmp2, tmp3) %>%
   arrange(trap_year)
 
 # Create ATT table ---------
 trib_esc_att <- tmp %>%
 select(
+  strata,
   stream,
   trap_year,
   N_U,
@@ -447,12 +475,12 @@ select(
   trib_esc_lwr,
   trib_esc_upr
 )
-  
-rm(tmp)
+
+rm(tmp, tmp2, tmp3)
 
 # fix inconsistent joining of with/without stream in data set, and upr/lwr naming ---------
 
-writexl::write_xlsx(trib_esc, path = './data/outputs/trib_esc.xlsx')
+writexl::write_xlsx(trib_esc, path = './data/outputs/escapement/trib_esc.xlsx')
 
 # glimpse(trib_esc)
 
