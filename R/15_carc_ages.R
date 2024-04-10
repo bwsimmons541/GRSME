@@ -13,11 +13,12 @@
 
 car_dat_tmp <- car_dat %>%
   filter(Species == 'Chinook salmon' & Run == 'Spring/summer') %>%
-  mutate(Best_Age = case_when(!is.na(CWT_Age) ~ as.character(CWT_Age),
-                             !is.na(PIT_Age) ~ as.character(PIT_Age),
-                             !is.na(VIE_Age) ~ as.character(VIE_Age),
-                             !is.na(Fin_Age) ~ as.character(Fin_Age),
-                             !is.na(Scale_Age) ~ as.character(Scale_Age)))
+  mutate(Best_Age = case_when(!is.na(Best_Age) ~ as.character(Best_Age),
+                              !is.na(CWT_Age) ~ as.character(CWT_Age),
+                              !is.na(PIT_Age) ~ as.character(PIT_Age),
+                              !is.na(VIE_Age) ~ as.character(VIE_Age),
+                              !is.na(Fin_Age) ~ as.character(Fin_Age),
+                              !is.na(Scale_Age) ~ as.character(Scale_Age)))
 
 # estimate age proportions w/CIs
 pAge_carc <- car_dat_tmp %>%
