@@ -397,6 +397,7 @@ writexl::write_xlsx(N_D, path = './data/outputs/escapement/esc_belowweir.xlsx')
              strata) %>%
     summarise("harvest" = sum(harvest))
 
+
 # summary of escapement pieces----------------------------------------
 # above weir, below weir, weir removals, harvest, trib esc, with CIs
 trib_esc <- left_join(esc_aboveweir,MR_preferred, by = c('SurveyYear','strata')) %>%
@@ -411,8 +412,7 @@ trib_esc <- left_join(esc_aboveweir,MR_preferred, by = c('SurveyYear','strata'))
   full_join(trib_harvest, by = c('trap_year', 'strata')) %>%
   mutate(trib_esc = N_U + N_D + N_weir + harvest,
          trib_esc_lwr = N_U_lwr + N_D_lwr + N_weir + harvest,
-         trib_esc_upr = N_U_upr + N_D_upr + N_weir + harvest,
-         spawners = N_U + N_D) %>%
+         trib_esc_upr = N_U_upr + N_D_upr + N_weir + harvest) %>%
   rename(weir_removals = N_weir) %>%
   arrange(trap_year, strata)
 
@@ -457,6 +457,60 @@ trib_esc <- trib_esc %>%
   bind_rows(tmp, tmp2, tmp3) %>%
   arrange(trap_year)
 
+# Add Jack/Adult and Origin -----
+
+trib_esc <- trib_esc %>%
+  mutate(Origin = case_when(
+    grepl("Hat", strata) ~ "Hatchery",
+    grepl("Nat", strata) ~ "Natural",
+    strata == "A" | strata == "J" | strata == "A+J" ~ "All"),
+    jack_adult = case_when(
+      strata == "A+J_Nat" | strata == "A+J_Hat" | strata == "A+J" ~ "All",
+      grepl('A', strata) ~ 'Adult',
+      grepl("J", strata) ~ 'Jack'
+    ))
+
+# Spawners ----
+
+# prespawn mort, grouped by pop, all sizes ------------------------------------
+psm <- car_dat %>%
+  filter(POP_NAME == 'Lostine River') %>%
+  #might be worth double-checking spawned-out criteria in cleaning script
+  filter(Sex == 'Female' & SpawnedOut != 'NA') %>%
+  sum_groups(.summary_var = SpawnedOut,
+             .cnt_var = Count, SurveyYear,MPG,POP_NAME) %>%
+  pivot_wider(names_from = SpawnedOut, values_from = n) %>%
+  mutate(across(where(is.numeric), replace_na, 0)) %>%
+  bind_cols(est_proportion(.$No, .$No + .$Yes, method = 'score')) %>%
+  rename(trap_year = SurveyYear) %>%
+  select(trap_year, p)
+
+
+trib_esc <- trib_esc %>%
+  left_join(psm, by = 'trap_year') %>%
+  mutate(spawners = round((N_U + N_D) * (1-p), 0)) %>%
+  select(trap_year,
+         stream,
+         strata,
+         Origin,
+         jack_adult,
+         MR_method,
+         MR_preferred,
+         N_U,
+         N_U_lwr,
+         N_U_upr,
+         N_D,
+         N_D_lwr,
+         N_D_upr,
+         weir_removals,
+         harvest,
+         trib_esc,
+         trib_esc_lwr,
+         trib_esc_upr,
+         spawners
+         )
+
+
 # Create ATT table ---------
 trib_esc_att <- tmp %>%
 select(
@@ -483,35 +537,4 @@ rm(tmp, tmp2, tmp3)
 writexl::write_xlsx(trib_esc, path = './data/outputs/escapement/trib_esc.xlsx')
 
 # glimpse(trib_esc)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

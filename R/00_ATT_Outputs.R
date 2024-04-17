@@ -12,7 +12,7 @@
 # library(writexl)
 # library(plotrix)
 
-devtools::install_github('RyanKinzer/cuyem')
+# devtools::install_github('RyanKinzer/cuyem')
 
 librarian::shelf(tidyverse,
                  ryankinzer/cdmsR,
@@ -46,9 +46,8 @@ librarian::shelf(tidyverse,
   # Load and clean Carcass Data----  
     
       # load('./data/inputs/CarcsData.rda')
-      # 
-      # # source('./R/01_clean_carcassData_NEOR_v2.R') # this still needs some work
-      # 
+      # source('./R/01_clean_carcassData_NEOR_v2.R') # this still needs some work
+
       # car_dat <- clean_carcassData_NEOR(CarcsData) %>%
       #   filter(SurveyYear %in% yr_range)
       # 
@@ -56,9 +55,8 @@ librarian::shelf(tidyverse,
       # 
       # save(car_dat, file = './data/inputs/car_dat.rda')
 
-
       load('./data/inputs/car_dat.rda')
-          
+              
   # Load and clean Redd Data----
       
       # load('./data/inputs/ReddsData.rda')
