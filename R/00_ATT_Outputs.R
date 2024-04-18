@@ -25,8 +25,8 @@ librarian::shelf(tidyverse,
 
 #source('./R/getCDMSdata.R') # un-comment to update data sets from CDMS
 
-  yr = 2023
-  yr_range = 2009:yr
+  yr = year(Sys.Date())
+  yr_range = 2010:yr # Data prior to 2010 is kind of sloppy I need more clarification
 
   #Load and CLean Wier Data----
   
@@ -46,9 +46,9 @@ librarian::shelf(tidyverse,
   # Load and clean Carcass Data----  
     
       # load('./data/inputs/CarcsData.rda')
-      # source('./R/01_clean_carcassData_NEOR_v2.R') # this still needs some work
-
-      # car_dat <- clean_carcassData_NEOR(CarcsData) %>%
+      # source('./R/clean_carcassData_NEOR_v2.R') # this still needs some work
+      # 
+      # car_dat <- clean_carcassData_NEOR_v2(CarcsData) %>%
       #   filter(SurveyYear %in% yr_range)
       # 
       # rm(CarcsData)
@@ -56,7 +56,7 @@ librarian::shelf(tidyverse,
       # save(car_dat, file = './data/inputs/car_dat.rda')
 
       load('./data/inputs/car_dat.rda')
-              
+  
   # Load and clean Redd Data----
       
       # load('./data/inputs/ReddsData.rda')
@@ -116,13 +116,3 @@ nat_trib <- trib_esc %>%
   mutate(pDOWN = N_D/trib_esc)
 
 writexl::write_xlsx(nat_trib, path = "./data/outputs/nat_trib.xlsx")
-
-# n_unique add LRW add to escapement script ----
-
-n_unique_LRW <- trap_dat %>%
-  filter(recap == "FALSE",
-         species == "Chinook",
-         run == "Summer") %>%
-  group_by(trap_year) %>%
-  summarize(n_unique = sum(count))
-

@@ -18,7 +18,10 @@ car_dat_tmp <- car_dat %>%
                               !is.na(PIT_Age) ~ as.character(PIT_Age),
                               !is.na(VIE_Age) ~ as.character(VIE_Age),
                               !is.na(Fin_Age) ~ as.character(Fin_Age),
-                              !is.na(Scale_Age) ~ as.character(Scale_Age)))
+                              !is.na(Scale_Age) ~ as.character(Scale_Age)#,
+                              # !is.na(Age_Key) ~ as.character(Age_Key) # Values from age-length key. not applicable to ATT
+                              ) # Leave out Length_Age as it's just an arbitrary visual determination 
+         ) 
 
 # estimate age proportions w/CIs
 pAge_carc <- car_dat_tmp %>%

@@ -457,6 +457,8 @@ trib_esc <- trib_esc %>%
   bind_rows(tmp, tmp2, tmp3) %>%
   arrange(trap_year)
 
+rm(tmp, tmp2, tmp3)
+
 # Add Jack/Adult and Origin -----
 
 trib_esc <- trib_esc %>%
@@ -464,15 +466,14 @@ trib_esc <- trib_esc %>%
     grepl("Hat", strata) ~ "Hatchery",
     grepl("Nat", strata) ~ "Natural",
     strata == "A" | strata == "J" | strata == "A+J" ~ "All"),
-    jack_adult = case_when(
+    age_designation = case_when(
       strata == "A+J_Nat" | strata == "A+J_Hat" | strata == "A+J" ~ "All",
       grepl('A', strata) ~ 'Adult',
-      grepl("J", strata) ~ 'Jack'
+      grepl("J", strata) ~ 'Jack/Jill'
     ))
 
 # Spawners ----
 
-# prespawn mort, grouped by pop, all sizes ------------------------------------
 psm <- car_dat %>%
   filter(POP_NAME == 'Lostine River') %>%
   #might be worth double-checking spawned-out criteria in cleaning script
@@ -485,17 +486,73 @@ psm <- car_dat %>%
   rename(trap_year = SurveyYear) %>%
   select(trap_year, p)
 
+# n_unique at weir ----
+
+  # N unique all 
+  n_unique_LRW <- trap_dat %>%
+    filter(recap == "FALSE",
+           species == "Chinook",
+           run == "Summer") %>%
+    group_by(trap_year) %>%
+    summarize(n_unique = sum(count)) %>%
+    mutate(Origin = 'All',
+           age_designation = 'All') %>%
+    ungroup()
+    
+
+  # N unique by age and origin
+  tmp <- trap_dat %>%
+    filter(recap == "FALSE",
+           species == "Chinook",
+           run == "Summer") %>%
+    group_by(trap_year,
+             origin,
+             age_designation) %>%
+    summarize(n_unique = sum(count)) %>%
+    rename(Origin = origin) %>%
+    ungroup()
+  
+  # N unique by origin
+  tmp2 <- trap_dat %>%
+    filter(recap == "FALSE",
+           species == "Chinook",
+           run == "Summer") %>%
+    group_by(trap_year,
+             origin) %>%
+    summarize(n_unique = sum(count)) %>%
+    mutate(age_designation = 'All') %>%
+    rename(Origin = origin) %>%
+    ungroup()
+    
+  # N unique by age
+  tmp3 <- trap_dat %>%
+    filter(recap == "FALSE",
+           species == "Chinook",
+           run == "Summer") %>%
+    group_by(trap_year,
+             age_designation) %>%
+    summarize(n_unique = sum(count)) %>%
+    mutate(Origin = 'All') %>%
+    ungroup()
+  
+    n_unique_LRW <- n_unique_LRW %>%
+      bind_rows(tmp, tmp2, tmp3)
+
+rm(tmp, tmp2, tmp3)
+    
 
 trib_esc <- trib_esc %>%
   left_join(psm, by = 'trap_year') %>%
+  left_join(n_unique_LRW, by = c('trap_year' = 'trap_year', 'Origin' = 'Origin', 'age_designation' = 'age_designation')) %>%
   mutate(spawners = round((N_U + N_D) * (1-p), 0)) %>%
   select(trap_year,
          stream,
          strata,
          Origin,
-         jack_adult,
+         age_designation,
          MR_method,
          MR_preferred,
+         n_unique,
          N_U,
          N_U_lwr,
          N_U_upr,
@@ -510,27 +567,30 @@ trib_esc <- trib_esc %>%
          spawners
          )
 
+  rm(psm, n_unique_LRW)
 
+
+  glimpse(trib_esc)
+  unique(trib_esc$strata)  
 # Create ATT table ---------
-trib_esc_att <- tmp %>%
-select(
-  strata,
-  stream,
-  trap_year,
-  N_U,
-  N_U_lwr,
-  N_U_upr,
-  N_D,
-  N_D_lwr,
-  N_D_upr,
-  weir_removals,
-  harvest,
-  trib_esc,
-  trib_esc_lwr,
-  trib_esc_upr
-)
-
-rm(tmp, tmp2, tmp3)
+trib_esc_att <- trib_esc %>%
+    filter(strata == "A+J") %>%
+    select(
+      strata,
+      stream,
+      trap_year,
+      N_U,
+      N_U_lwr,
+      N_U_upr,
+      N_D,
+      N_D_lwr,
+      N_D_upr,
+      weir_removals,
+      harvest,
+      trib_esc,
+      trib_esc_lwr,
+      trib_esc_upr
+    )
 
 # fix inconsistent joining of with/without stream in data set, and upr/lwr naming ---------
 

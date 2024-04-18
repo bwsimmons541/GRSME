@@ -12,8 +12,8 @@
 # set year ----
   
   # Should I remove this? it's only necessary if I'm calculating back to 1995?
-    # yr = year(Sys.Date())
-    # yr_range = 1995:yr # do we have data back to 1995?
+    yr = year(Sys.Date())
+    yr_range = 2010:yr # Data back to 1995, but not necessarily reliable.
 
 # Load Data ---
     
@@ -27,9 +27,9 @@
     # 
     # rm(WeirData)
     # 
-    # save(trap_dat, file = './data/inputs/trap_dat_95.rda')
+    # save(trap_dat, file = './data/inputs/trap_dat.rda')
 
-    load('./data/inputs/trap_dat_95.rda')
+    load('./data/inputs/trap_dat.rda')
     
   # Carcass Data
     
@@ -42,9 +42,9 @@
     # 
     # rm(CarcsData)
     # 
-    # save(car_dat, file = './data/inputs/car_dat_95.rda')
+    # save(car_dat, file = './data/inputs/car_dat.rda')
     
-    load('./data/inputs/car_dat_95.rda')
+    load('./data/inputs/car_dat.rda')
     
   # Redd Data
     
@@ -55,9 +55,9 @@
     # 
     # rm(ReddsData)
     # 
-    # save(redd_dat, file = './data/inputs/redd_dat_95.rda')
+    # save(redd_dat, file = './data/inputs/redd_dat.rda')
 
-    load('./data/inputs/redd_dat_95.rda')
+    # load('./data/inputs/redd_dat.rda')
 
   # Load hatchery surival data
   # ONLY BACK TO 1999 - GET FULL DATA SET IN CDMS
@@ -76,7 +76,7 @@
     los_smolts_nat <- readxl::read_xlsx('./data/inputs/lostine_smolts_nat.xlsx')
     
   
-# Escapment ----  
+# Escapement ----  
 
   source('./R/08_trib_esc.R')
   rm(trib_esc_att, psm)  
@@ -96,19 +96,19 @@
               !is.na(Fin_Age) ~ as.character(Fin_Age),
               !is.na(Scale_Age) ~ as.character(Scale_Age),
               !is.na(VIE_Age) ~ as.character(VIE_Age),
-              # !is.na(Age_Key) ~ as.character(Age_Key), # Age Length Key
+              !is.na(Age_Key) ~ as.character(Age_Key), # Age Length Key analysis values
               !is.na(Length_Age) ~ as.character(Length_Age) # "Visually" assigned age based on length
               ))
   
     rm(car_dat)
   
   # Estimate age proportions & account for low proportions of jacks
-  # NO NATURAL DATA FOR 2024
+  # NO NATURAL DATA FOR 2023
     pAge_carc <- car_dat_tmp %>%
       filter(!is.na(Best_Age),
              Best_Age != '2',
              StreamName == "Lostine River") %>%
-      mutate(jack_adult = case_when( # what is JACK/ADULTS in ODFW database?
+      mutate(age_designation = case_when( # what is JACK/ADULTS in ODFW database?
                 ForkLength < 630 ~ "Jack",
                 ForkLength >= 630 ~ "Adult"
                 ),
@@ -118,7 +118,7 @@
                TRUE ~ Best_Age
                )
              ) %>%
-      est_group_p(.summary_var = Best_Age, alpha = .05, SurveyYear, MPG, POP_NAME, StreamName, Origin, jack_adult) %>%
+      est_group_p(.summary_var = Best_Age, alpha = .05, SurveyYear, MPG, POP_NAME, StreamName, Origin, age_designation) %>%
       rename(return_year = SurveyYear) %>% 
       mutate(brood_year = case_when(
               Best_Age == 2 ~ return_year - 2,
@@ -187,10 +187,10 @@
           tmp <- trib_esc %>%
             rename(return_year = trap_year) %>%
             filter(Origin != 'All',
-                   jack_adult != 'All') %>%
+                   age_designation != 'All') %>%
           select(return_year,
                  Origin,
-                 jack_adult,
+                 age_designation,
                  weir_removals,
                  harvest,
                  trib_esc, # add 22 jacks to 2023
@@ -202,7 +202,7 @@
           # NO 2023 NATURAL ADULT IN pAge_Carc causes the NA column. why isn't there one.
             tmp2 <- pAge_carc %>%
               filter(Origin != 'Unknown') %>%
-              right_join(tmp, by = c('return_year', 'Origin', 'jack_adult'))
+              right_join(tmp, by = c('return_year', 'Origin', 'age_designation'))
             
             tmp3 <- tmp2 %>%
               mutate(by_esc = round(p * trib_esc, 0)) %>%
@@ -271,6 +271,7 @@
         
         
       # HATCHERY ORIGIN 
+      # Missing 2010 in final
         # filter for Lostine only survival
           los_survival <- juv_survival %>%
             filter(StreamName == "Lostine River") %>%
@@ -341,15 +342,28 @@
 
 # Lifecycle- inputs ----
         
-        life_cycle <- esc %>%
+        # join lifecycle inputs into a single dataframe
+        lc <- esc %>%
           full_join(spawners, by = 'brood_year') %>%
           full_join(by_return, by = 'brood_year') %>%
           full_join(bs_spawners, by = 'brood_year') %>%
           full_join(los_smolts, by = 'brood_year') %>%
           full_join(hat_age_esc, by = 'brood_year') %>%
           full_join(nat_age_esc, by = 'brood_year') %>%
-          select(-stream) %>%
+          select(-stream, -NA.x, - NA.y) %>%
+          filter(brood_year > 2009)
+            
+          
+        # Data is messy or incomplete in CDMS prior to 2010
+        # Import and bind past data 
+        lc09 <- readxl::read_xlsx('./data/inputs/lifecycle_lostine_95-09.xlsx')
+        
+        # Bind data together
+        life_cycle <- lc %>%
+          bind_rows(lc09) %>%
           arrange(brood_year)
+          
+          
         
         writexl::write_xlsx(life_cycle, path = './data/outputs/lifecycle.xlsx')
         
@@ -359,7 +373,9 @@
            bs_spawners, 
            los_smolts, 
            hat_age_esc,
-           nat_age_esc)
+           nat_age_esc,
+           lc,
+           lc09)
         
         
         
