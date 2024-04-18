@@ -172,7 +172,10 @@ clean_carcassData_NEOR_v2 <- function (data)
                                                  NA),
                               Best_Age = ifelse(BestAge > 0,
                                                 BestAge,
-                                                NA)) %>%
+                                                NA),
+                              Age_Key = ifelse(AgeKey > 0,
+                                               AgeKey,
+                                               NA)) %>% 
 
     
     # removed from select ----
@@ -196,6 +199,6 @@ clean_carcassData_NEOR_v2 <- function (data)
            ActivityQAStatusId, ActivityQAComments, FieldsheetLink, 
            QAStatusName, EffDt, Year, AboveWeir, AbovePITArray, 
            AboveRST, Origin, Mark_Discernible, Recapture, MR_strata, Length_Age,
-           CWT_Age, VIE_Age, PIT_Age, Fin_Age, Scale_Age, Fin_Age, Best_Age)
+           CWT_Age, VIE_Age, PIT_Age, Fin_Age, Scale_Age, Fin_Age, Best_Age, Age_Key)
   return(data_clean)
 }
