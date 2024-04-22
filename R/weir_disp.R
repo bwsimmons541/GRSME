@@ -19,4 +19,4 @@ T4_disp <- est_final_dispositions(trap_dat, grouping) %>%
 
 rm(grouping)
 
-writexl::write_xlsx(T4_disp, path = './data/outputs/T4_disp.xlsx')
+writexl::write_xlsx(T4_disp, path = './data/outputs/los-weir-dispositions.xlsx')

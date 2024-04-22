@@ -364,8 +364,8 @@ writexl::write_xlsx(esc_aboveweir, path = './data/outputs/escapement/esc_abovewe
 
 #Jack numbers are off because of the downstream portion of this      
 
-source('./R/11_GRSME_functions.R')
-source('./R/09_below_weir_esc.R') # J and J_Hat + J_Nat don't add up
+source('./R/GRSME_functions.R')
+source('./R/below_weir_esc.R') # J and J_Hat + J_Nat don't add up
 
 rm(redds, tmp_esc, tmp_weir, tmp_weir3, adults_D, adults_U, MR_aboveweir)
 
@@ -569,32 +569,5 @@ trib_esc <- trib_esc %>%
 
   rm(psm, n_unique_LRW)
 
-
-  glimpse(trib_esc)
-  unique(trib_esc$strata)  
-# Create ATT table ---------
-trib_esc_att <- trib_esc %>%
-    filter(strata == "A+J") %>%
-    select(
-      strata,
-      stream,
-      trap_year,
-      N_U,
-      N_U_lwr,
-      N_U_upr,
-      N_D,
-      N_D_lwr,
-      N_D_upr,
-      weir_removals,
-      harvest,
-      trib_esc,
-      trib_esc_lwr,
-      trib_esc_upr
-    )
-
-# fix inconsistent joining of with/without stream in data set, and upr/lwr naming ---------
-
 writexl::write_xlsx(trib_esc, path = './data/outputs/escapement/trib_esc.xlsx')
-
-# glimpse(trib_esc)
 

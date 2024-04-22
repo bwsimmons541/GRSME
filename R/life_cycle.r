@@ -11,53 +11,15 @@
 
 # set year ----
   
-  # Should I remove this? it's only necessary if I'm calculating back to 1995?
-    yr = year(Sys.Date())
-    yr_range = 2010:yr # Data back to 1995, but not necessarily reliable.
+  # # Should I remove this? it's only necessary if I'm calculating back to 1995?
+  #   yr = year(Sys.Date())
+  #   yr_range = 2010:yr # Data back to 1995, but not necessarily reliable.
 
 # Load Data ---
     
-  # Trapping Data
+  # Trapping, carcass, and redd data
     
-    # load('./data/inputs/WeirData.rda')
-    #
-    # trap_dat <- clean_weirData(WeirData) %>%
-    #   filter(facility == 'NPT GRSME Program') %>%
-    #   filter(trap_year %in% yr_range)
-    # 
-    # rm(WeirData)
-    # 
-    # save(trap_dat, file = './data/inputs/trap_dat.rda')
-
-    load('./data/inputs/trap_dat.rda')
-    
-  # Carcass Data
-    
-    
-    
-    # load('./data/inputs/CarcsData.rda')
-    # 
-    # car_dat <- clean_carcassData_NEOR(CarcsData) %>%
-    #   filter(SurveyYear %in% yr_range)
-    # 
-    # rm(CarcsData)
-    # 
-    # save(car_dat, file = './data/inputs/car_dat.rda')
-    
-    load('./data/inputs/car_dat.rda')
-    
-  # Redd Data
-    
-    # load('./data/inputs/ReddsData.rda')
-    # 
-    # redd_dat <- clean_reddData_NEOR(ReddsData) %>%
-    #   filter(SurveyYear %in% yr_range & ReddSpecies == 'S_CHN')
-    # 
-    # rm(ReddsData)
-    # 
-    # save(redd_dat, file = './data/inputs/redd_dat.rda')
-
-    # load('./data/inputs/redd_dat.rda')
+    source('./r/getCDMSdata.R')
 
   # Load hatchery surival data
   # ONLY BACK TO 1999 - GET FULL DATA SET IN CDMS
@@ -78,8 +40,8 @@
   
 # Escapement ----  
 
-  source('./R/08_trib_esc.R')
-  rm(trib_esc_att, psm)  
+  source('./R/trib_esc.R')
+  rm(trib_esc_att)  
 
   
 # age composition ----
@@ -100,8 +62,7 @@
               !is.na(Length_Age) ~ as.character(Length_Age) # "Visually" assigned age based on length
               ))
   
-    rm(car_dat)
-  
+
   # Estimate age proportions & account for low proportions of jacks
   # NO NATURAL DATA FOR 2023
     pAge_carc <- car_dat_tmp %>%
@@ -109,7 +70,7 @@
              Best_Age != '2',
              StreamName == "Lostine River") %>%
       mutate(age_designation = case_when( # what is JACK/ADULTS in ODFW database?
-                ForkLength < 630 ~ "Jack",
+                ForkLength < 630 ~ "Jack/Jill",
                 ForkLength >= 630 ~ "Adult"
                 ),
              Best_Age = case_when(
@@ -193,7 +154,7 @@
                  age_designation,
                  weir_removals,
                  harvest,
-                 trib_esc, # add 22 jacks to 2023
+                 trib_esc,
                  spawners)
             
           rm(trib_esc)
@@ -211,7 +172,8 @@
                        brood_year,
                        Best_Age) %>%
               summarize(by_esc = sum(by_esc)) %>%
-              ungroup()
+              ungroup() %>%
+              filter(!is.na(by_esc))
         
             rm(pAge_carc)
         # Brood year escapement by age - Natural Origin - nat_2, nat_3, nat_4, Nat_5, nat_6
@@ -243,11 +205,10 @@
 
         
         # Total brood year returns
-          by_return <- tmp3 %>% # i think I can move this down and eliminate tmp3 ??WHAT IS THIS COMMENT??  
+          by_return <- tmp3 %>%
             group_by(brood_year,
                      Origin) %>%
             summarize(by_return = sum(by_esc)) %>%
-            filter(Origin != 'Unknown') %>%
             pivot_wider(names_from = Origin,
                         values_from = by_return) %>%
             rename(nat_by_return = Natural,
@@ -264,8 +225,6 @@
                    bs_spawners = n) %>%
             select(brood_year,
                    bs_spawners)
-          
-          rm(trap_dat)
         
 # Juvenile Abundance and Smolt Equivalents ----
         
@@ -284,7 +243,8 @@
                    survival = Survival)
             
             rm(juv_survival)
-          
+
+              
         # Calculate smolt equivalents (hat_smolts)
           hat_smolts <- los_smolts_hat %>%
             group_by(brood_year,
@@ -321,8 +281,7 @@
                    above_rst = Yes,
                    brood_year = SurveyYear)
         
-          rm(redd_dat)
-          
+
         # Natural Origin redd expansion & for juveniles (nat_emig) & smolt equivalents (nat_smolts)
           tmp <- los_smolts_nat %>%
             left_join(rst_redds) %>%
@@ -350,7 +309,7 @@
           full_join(los_smolts, by = 'brood_year') %>%
           full_join(hat_age_esc, by = 'brood_year') %>%
           full_join(nat_age_esc, by = 'brood_year') %>%
-          select(-stream, -NA.x, - NA.y) %>%
+          select(-stream) %>%
           filter(brood_year > 2009)
             
           

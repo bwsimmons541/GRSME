@@ -37,5 +37,5 @@ pFemale_weir <- trap_dat %>%
 
 T6_weir_proportions <- full_join(hat_frac_weir,pFemale_weir)
   
-writexl::write_xlsx(T6_weir_proportions, path = './data/outputs/T6_weir_proportions.xlsx')
+writexl::write_xlsx(T6_weir_proportions, path = './data/outputs/los_weir_proportions.xlsx')
 

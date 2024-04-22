@@ -12,7 +12,7 @@ T9_sth_disp <- trap_dat_sth %>%
   summarize(n = sum(count)) %>%
   pivot_wider(names_from = disposition, values_from = n)
 
-writexl::write_xlsx(T9_sth_disp, path = './data/outputs/T9_sth_disp.xlsx')
+writexl::write_xlsx(T9_sth_disp, path = './data/outputs/sth_disp.xlsx')
 
 
 # Table 11 - weir summary - esc, etc ------------------------------------------
@@ -107,4 +107,4 @@ T11_sth_weirstuff <- full_join(weir_esc_sth, hat_frac_sth) %>%
          N_U, N_U_lwr, N_U_upr,
          pHat, pHat_lwr, pHat_upr,
          pFem, pFem_lwr, pFem_upr)
-writexl::write_xlsx(T11_sth_weirstuff, path = './data/outputs/T11_sth_weirstuff.xlsx')
+writexl::write_xlsx(T11_sth_weirstuff, path = './data/outputs/sth_weirstuff.xlsx')
