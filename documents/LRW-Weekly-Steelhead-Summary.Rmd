@@ -69,9 +69,9 @@ librarian::shelf(knitr,
 # rm(lrw_omykiss)
 
 load('../data/lrw_omykiss.rda')
-source('../R/07_sumSTHdisp.R')
-source('../R/07_sumRBTdisp.R')
-source('../R/07_sumSTHweekly.R')
+source('../R/sumSTHdisp.R')
+source('../R/sumRBTdisp.R')
+source('../R/sumSTHweekly.R')
 
 trap.year <- 2023
 yr_range <- (trap.year-9):trap.year

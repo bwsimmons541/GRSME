@@ -19,8 +19,8 @@ librarian::shelf(knitr,
                  tidyverse)
 
 source('../R/cdms_api_keys.R')
-source('../R/02_sumGRSMEdisp.R') # FINS Disposition Summary
-source('../R/03_sumGRSMEbrood.R') # Brood Collection Summary
+source('../R/sumGRSMEdisp.R') # FINS Disposition Summary
+source('../R/sumGRSMEbrood.R') # Brood Collection Summary
 
 # set values
 trap.year <- year(Sys.time())  

@@ -37,7 +37,7 @@ librarian::shelf(tidyverse,
     source('./R/steelhead.R')# Tables 9 & 11 - sth trapping and escapement
 
 
-# Tributary escapement fromatted for ATT ----
+# Tributary escapement formatted for ATT ----
 
     trib_esc_att <- trib_esc %>%
       filter(strata == "A+J") %>%
@@ -81,7 +81,7 @@ librarian::shelf(tidyverse,
   
 
 # figures ---------------------------------------------------------------------
-# source('./R/graphing.R') #or just produce graphs within the above scripts#
+# source('./R/graphing.R') # or just produce graphs within the above scripts#
 
 # 2010/11 - carcass origin oddities...HON...
 # will need to make assumption about hat/nat as in comanager spdsht
@@ -91,10 +91,4 @@ librarian::shelf(tidyverse,
 # e.g., jack/adult/origin/all
 
 
-# Natural escapement ----
 
-  nat_trib <- trib_esc %>%
-    filter(strata == "A_Nat" | strata == "J_Nat") %>%
-    mutate(pDOWN = N_D/trib_esc)
-  
-  writexl::write_xlsx(nat_trib, path = "./data/outputs/nat_trib.xlsx")
